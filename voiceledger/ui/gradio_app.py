@@ -22,6 +22,7 @@ from voiceledger.ledger.inventory import get_inventory
 from voiceledger.parser.rules import parse_transaction
 from voiceledger.parser.schema import Transaction
 from voiceledger.reports.pdf_report import generate_daily_summary_pdf
+from voiceledger.reports.whatsapp_summary import generate_whatsapp_summary
 from voiceledger.speech.transcribe import TranscriptionError, transcribe_audio
 
 
@@ -177,6 +178,22 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                 fn=lambda: _generate_daily_summary_report(db_path),
                 inputs=None,
                 outputs=[report_file_output, report_status_output],
+            )
+            gr.Markdown("### WhatsApp Summary")
+            generate_whatsapp_button = gr.Button("Generate WhatsApp Summary")
+            whatsapp_summary_output = gr.Textbox(
+                label="WhatsApp Summary",
+                lines=10,
+                interactive=False,
+                show_copy_button=True,
+            )
+            generate_whatsapp_button.click(
+                fn=lambda: generate_whatsapp_summary(
+                    db_path=db_path,
+                    low_stock_threshold=LOW_STOCK_THRESHOLD,
+                ),
+                inputs=None,
+                outputs=whatsapp_summary_output,
             )
 
         with gr.Tab("Ledger"):

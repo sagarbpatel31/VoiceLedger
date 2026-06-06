@@ -11,6 +11,7 @@ The current version focuses on a clean, deterministic foundation:
 - View the ledger, customer credit book, and inventory in a Gradio interface.
 - Monitor business insights in a dashboard.
 - Download a Daily Summary PDF report.
+- Generate a WhatsApp-ready daily business summary.
 
 LLM parsing is intentionally not implemented yet.
 
@@ -72,3 +73,4 @@ pytest
 - PDF reports are generated with fpdf2 from the current SQLite ledger state.
 - Parser architecture supports rule-based and Hugging Face Inference API compatible LLM parsers, with rule fallback on LLM failure.
 - The dashboard shows daily sales, expenses, profit, outstanding credit, top sellers, and low-stock alerts from saved data.
+- WhatsApp summaries provide a short copyable daily recap for sharing.
