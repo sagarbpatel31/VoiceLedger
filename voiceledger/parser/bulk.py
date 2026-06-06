@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Any
 
 import pandas as pd
@@ -23,9 +24,9 @@ REVIEW_COLUMNS = [
 ]
 
 
-def parse_bulk_notes(notes: str) -> pd.DataFrame:
+def parse_bulk_notes(notes: str, parser: Callable[[str], Transaction] = parse_transaction) -> pd.DataFrame:
     """Split pasted notes into lines and parse each line for review."""
-    transactions = [parse_transaction(line) for line in _split_note_lines(notes)]
+    transactions = [parser(line) for line in _split_note_lines(notes)]
     return transactions_to_dataframe(transactions)
 
 

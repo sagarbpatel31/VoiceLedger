@@ -8,6 +8,7 @@ from typing import Any
 import gradio as gr
 import pandas as pd
 
+from backend import modal_api
 from voiceledger.ledger.analytics import (
     calculate_daily_expenses,
     calculate_daily_sales,
@@ -20,11 +21,11 @@ from voiceledger.ledger.customers import get_customer_balances
 from voiceledger.ledger.database import add_transaction, get_transactions, initialize_database
 from voiceledger.ledger.inventory import get_inventory
 from voiceledger.parser.bulk import REVIEW_COLUMNS, parse_bulk_notes, review_table_to_transactions
-from voiceledger.parser.rules import parse_transaction
+from voiceledger.parser.rules import parse_transaction as local_parse_transaction
 from voiceledger.parser.schema import Transaction
 from voiceledger.reports.pdf_report import generate_daily_summary_pdf
 from voiceledger.reports.whatsapp_summary import generate_whatsapp_summary
-from voiceledger.speech.transcribe import TranscriptionError, transcribe_audio
+from voiceledger.speech.transcribe import TranscriptionError, transcribe_audio as local_transcribe_audio
 from voiceledger.ui.theme import APP_CSS, create_theme
 
 
@@ -284,7 +285,7 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
 
 def _parse_note(note: str) -> tuple[dict[str, Any], dict[str, Any], str]:
     """Parse a note and return display data plus serializable state."""
-    transaction = parse_transaction(note)
+    transaction = modal_api.parse_transaction(note, fallback=local_parse_transaction)
     payload = transaction.model_dump()
     status = _status_message(transaction)
     return payload, payload, status
@@ -293,12 +294,12 @@ def _parse_note(note: str) -> tuple[dict[str, Any], dict[str, Any], str]:
 def _transcribe_and_parse_audio(audio_path: str | None) -> tuple[str, dict[str, Any], dict[str, Any] | None, str]:
     """Transcribe recorded audio, parse the transcript, and return UI updates."""
     try:
-        transcript = transcribe_audio(audio_path)
+        transcript = modal_api.transcribe_audio(audio_path, fallback=local_transcribe_audio)
     except TranscriptionError as exc:
         empty_payload = _empty_transaction_payload()
         return "", empty_payload, None, f"Transcription failed: {exc}"
 
-    transaction = parse_transaction(transcript)
+    transaction = modal_api.parse_transaction(transcript, fallback=local_parse_transaction)
     payload = transaction.model_dump()
     return transcript, payload, payload, _status_message(transaction)
 
@@ -315,7 +316,10 @@ def _save_transaction(transaction_payload: dict[str, Any] | None, db_path: str |
 
 def _parse_bulk_notes_for_review(notes: str) -> tuple[pd.DataFrame, str]:
     """Parse pasted multiline notes into an editable review table."""
-    review_table = parse_bulk_notes(notes)
+    review_table = parse_bulk_notes(
+        notes,
+        parser=lambda line: modal_api.parse_transaction(line, fallback=local_parse_transaction),
+    )
     if review_table.empty:
         return review_table, "Paste one transaction per line, then parse."
     return review_table, f"Parsed {len(review_table)} transaction lines. Review and edit before saving."

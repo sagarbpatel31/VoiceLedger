@@ -9,7 +9,7 @@ def test_transcribe_and_parse_audio_handles_transcription_error(monkeypatch) -> 
     def fail_transcription(_: str | None) -> str:
         raise gradio_app.TranscriptionError("test failure")
 
-    monkeypatch.setattr(gradio_app, "transcribe_audio", fail_transcription)
+    monkeypatch.setattr(gradio_app.modal_api, "transcribe_audio", lambda audio, fallback: fail_transcription(audio))
 
     transcript, structured, state, status = gradio_app._transcribe_and_parse_audio("audio.wav")
 
@@ -21,9 +21,14 @@ def test_transcribe_and_parse_audio_handles_transcription_error(monkeypatch) -> 
 
 def test_transcribe_and_parse_audio_parses_transcript(monkeypatch) -> None:
     monkeypatch.setattr(
-        gradio_app,
+        gradio_app.modal_api,
         "transcribe_audio",
-        lambda _: "Sold 12 mangoes, 20 each",
+        lambda audio, fallback: "Sold 12 mangoes, 20 each",
+    )
+    monkeypatch.setattr(
+        gradio_app.modal_api,
+        "parse_transaction",
+        lambda text, fallback: fallback(text),
     )
 
     transcript, structured, state, status = gradio_app._transcribe_and_parse_audio("audio.wav")
