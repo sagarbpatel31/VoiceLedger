@@ -10,6 +10,7 @@ import pandas as pd
 
 from voiceledger.config import get_database_path
 from voiceledger.ledger.customers import add_credit, initialize_customers_table, record_payment
+from voiceledger.ledger.inventory import add_stock, initialize_inventory_table, remove_stock
 from voiceledger.parser.schema import Transaction
 
 
@@ -54,6 +55,7 @@ def initialize_database(db_path: str | Path | None = None) -> Path:
         connection.commit()
 
     initialize_customers_table(path)
+    initialize_inventory_table(path)
     return path
 
 
@@ -94,6 +96,7 @@ def add_transaction(transaction: Transaction, db_path: str | Path | None = None)
         transaction_id = int(cursor.lastrowid)
 
     _apply_customer_balance_update(transaction, path)
+    _apply_inventory_update(transaction, path)
     return transaction_id
 
 
@@ -141,3 +144,14 @@ def _apply_customer_balance_update(transaction: Transaction, db_path: Path) -> N
         add_credit(transaction.customer, transaction.amount, db_path)
     elif transaction.transaction_type == "customer_payment":
         record_payment(transaction.customer, transaction.amount, db_path)
+
+
+def _apply_inventory_update(transaction: Transaction, db_path: Path) -> None:
+    """Apply inventory side effects for stock-related transactions."""
+    if not transaction.item or transaction.quantity is None:
+        return
+
+    if transaction.transaction_type == "inventory_purchase":
+        add_stock(transaction.item, transaction.quantity, db_path)
+    elif transaction.transaction_type == "sale":
+        remove_stock(transaction.item, transaction.quantity, db_path)

@@ -6,12 +6,17 @@ from pathlib import Path
 from typing import Any
 
 import gradio as gr
+import pandas as pd
 
 from voiceledger.ledger.customers import get_customer_balances
 from voiceledger.ledger.database import add_transaction, get_transactions, initialize_database
+from voiceledger.ledger.inventory import get_inventory
 from voiceledger.parser.rules import parse_transaction
 from voiceledger.parser.schema import Transaction
 from voiceledger.speech.transcribe import TranscriptionError, transcribe_audio
+
+
+LOW_STOCK_THRESHOLD = 5
 
 
 def create_app(db_path: str | Path | None = None) -> gr.Blocks:
@@ -86,6 +91,25 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                 outputs=customer_balances_output,
             )
 
+        with gr.Tab("Inventory"):
+            refresh_inventory_button = gr.Button("Refresh Inventory")
+            inventory_output = gr.Dataframe(
+                headers=["item", "current_stock"],
+                label="Current stock",
+                interactive=False,
+                wrap=True,
+            )
+            refresh_inventory_button.click(
+                fn=lambda: _get_inventory_display(db_path),
+                inputs=None,
+                outputs=inventory_output,
+            )
+            demo.load(
+                fn=lambda: _get_inventory_display(db_path),
+                inputs=None,
+                outputs=inventory_output,
+            )
+
         with gr.Tab("Ledger"):
             refresh_button = gr.Button("Refresh Ledger")
             ledger_output = gr.Dataframe(
@@ -149,6 +173,20 @@ def _save_transaction(transaction_payload: dict[str, Any] | None, db_path: str |
     transaction = Transaction(**transaction_payload)
     transaction_id = add_transaction(transaction, db_path)
     return f"Saved transaction #{transaction_id}."
+
+
+def _get_inventory_display(db_path: str | Path | None) -> pd.io.formats.style.Styler:
+    """Return inventory with low-stock rows highlighted for Gradio display."""
+    inventory = get_inventory(db_path)
+    return inventory.style.apply(_highlight_low_stock, axis=1)
+
+
+def _highlight_low_stock(row: pd.Series) -> list[str]:
+    """Highlight rows where stock is below the configured threshold."""
+    current_stock = row.get("current_stock")
+    if current_stock is not None and float(current_stock) < LOW_STOCK_THRESHOLD:
+        return ["background-color: #fff3cd; color: #5f370e"] * len(row)
+    return [""] * len(row)
 
 
 def _empty_transaction_payload() -> dict[str, Any]:

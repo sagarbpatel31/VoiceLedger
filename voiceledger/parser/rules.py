@@ -19,10 +19,17 @@ SALE_PATTERN = re.compile(
     re.IGNORECASE,
 )
 EXPENSE_PATTERN = re.compile(
-    rf"\b(?:paid|spent|bought|purchased|buy)\s+"
+    rf"\b(?:paid|spent)\s+"
     rf"(?P<amount>\d+(?:\.\d+)?)"
     rf"(?:\s+(?:for|on))?\s*"
     rf"(?P<item>[a-zA-Z][a-zA-Z\s-]*)?",
+    re.IGNORECASE,
+)
+INVENTORY_PURCHASE_PATTERN = re.compile(
+    rf"\b(?:bought|purchased|buy|stocked|restocked)\s+"
+    rf"(?P<quantity>\d+(?:\.\d+)?)\s+"
+    rf"(?P<item>[a-zA-Z][a-zA-Z\s-]*?)"
+    rf"(?:\s+(?:for|at)\s+(?P<amount>\d+(?:\.\d+)?))?\b",
     re.IGNORECASE,
 )
 CREDIT_PATTERN = re.compile(
@@ -56,6 +63,10 @@ def parse_transaction(note: str) -> Transaction:
     customer_payment = _parse_customer_payment(cleaned_note)
     if customer_payment:
         return customer_payment
+
+    inventory_purchase = _parse_inventory_purchase(cleaned_note)
+    if inventory_purchase:
+        return inventory_purchase
 
     sale = _parse_sale(cleaned_note)
     if sale:
@@ -109,6 +120,23 @@ def _parse_expense(note: str) -> Transaction | None:
         payment_status="paid",
         notes=note,
         confidence=0.88,
+    )
+
+
+def _parse_inventory_purchase(note: str) -> Transaction | None:
+    """Parse notes like 'Bought 50 mangoes'."""
+    match = INVENTORY_PURCHASE_PATTERN.search(note)
+    if not match:
+        return None
+
+    return Transaction(
+        transaction_type="inventory_purchase",
+        item=_clean_item(match.group("item")),
+        quantity=_to_float(match.group("quantity")),
+        amount=_to_float(match.group("amount")),
+        payment_status="paid",
+        notes=note,
+        confidence=0.86,
     )
 
 

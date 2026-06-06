@@ -2,6 +2,7 @@ from pathlib import Path
 
 from voiceledger.ledger.customers import get_customer_balances
 from voiceledger.ledger.database import add_transaction, get_transactions, initialize_database
+from voiceledger.ledger.inventory import get_inventory
 from voiceledger.parser.rules import parse_transaction
 
 
@@ -49,3 +50,26 @@ def test_customer_payment_transaction_decreases_balance(tmp_path: Path) -> None:
     assert len(balances) == 1
     assert balances.iloc[0]["customer"] == "Amit"
     assert balances.iloc[0]["outstanding_balance"] == 50
+
+
+def test_inventory_purchase_transaction_increases_stock(tmp_path: Path) -> None:
+    db_path = tmp_path / "voiceledger.sqlite3"
+
+    add_transaction(parse_transaction("Bought 50 mangoes"), db_path)
+    inventory = get_inventory(db_path)
+
+    assert len(inventory) == 1
+    assert inventory.iloc[0]["item"] == "mangoes"
+    assert inventory.iloc[0]["current_stock"] == 50
+
+
+def test_sale_transaction_decreases_stock(tmp_path: Path) -> None:
+    db_path = tmp_path / "voiceledger.sqlite3"
+
+    add_transaction(parse_transaction("Bought 50 mangoes"), db_path)
+    add_transaction(parse_transaction("Sold 12 mangoes"), db_path)
+    inventory = get_inventory(db_path)
+
+    assert len(inventory) == 1
+    assert inventory.iloc[0]["item"] == "mangoes"
+    assert inventory.iloc[0]["current_stock"] == 38

@@ -21,6 +21,24 @@ def test_parse_expense() -> None:
     assert transaction.payment_status == "paid"
 
 
+def test_parse_inventory_purchase() -> None:
+    transaction = parse_transaction("Bought 50 mangoes")
+
+    assert transaction.transaction_type == "inventory_purchase"
+    assert transaction.quantity == 50
+    assert transaction.item == "mangoes"
+    assert transaction.payment_status == "paid"
+
+
+def test_parse_sale_without_unit_price_for_inventory() -> None:
+    transaction = parse_transaction("Sold 12 mangoes")
+
+    assert transaction.transaction_type == "sale"
+    assert transaction.quantity == 12
+    assert transaction.item == "mangoes"
+    assert transaction.unit_price is None
+
+
 def test_parse_customer_credit() -> None:
     transaction = parse_transaction("Amit owes 100")
 
