@@ -12,6 +12,16 @@ def test_parse_sale_with_quantity_and_unit_price() -> None:
     assert transaction.payment_status == "paid"
 
 
+def test_parse_shorthand_sale() -> None:
+    transaction = parse_transaction("mango 12 x 20")
+
+    assert transaction.transaction_type == "sale"
+    assert transaction.item == "mango"
+    assert transaction.quantity == 12
+    assert transaction.unit_price == 20
+    assert transaction.amount == 240
+
+
 def test_parse_expense() -> None:
     transaction = parse_transaction("Paid 500 for supplies")
 
@@ -19,6 +29,14 @@ def test_parse_expense() -> None:
     assert transaction.amount == 500
     assert transaction.item == "supplies"
     assert transaction.payment_status == "paid"
+
+
+def test_parse_shorthand_expense() -> None:
+    transaction = parse_transaction("rent 300")
+
+    assert transaction.transaction_type == "expense"
+    assert transaction.item == "rent"
+    assert transaction.amount == 300
 
 
 def test_parse_inventory_purchase() -> None:

@@ -26,6 +26,17 @@ EXPENSE_PATTERN = re.compile(
     rf"(?P<item>[a-zA-Z][a-zA-Z\s-]*)?",
     re.IGNORECASE,
 )
+SHORTHAND_SALE_PATTERN = re.compile(
+    rf"^\s*(?P<item>[a-zA-Z][a-zA-Z\s-]*?)\s+"
+    rf"(?P<quantity>\d+(?:\.\d+)?)\s*(?:x|@)\s*"
+    rf"(?P<unit_price>\d+(?:\.\d+)?)\s*$",
+    re.IGNORECASE,
+)
+SHORTHAND_EXPENSE_PATTERN = re.compile(
+    rf"^\s*(?P<item>[a-zA-Z][a-zA-Z\s-]*?)\s+"
+    rf"(?P<amount>\d+(?:\.\d+)?)\s*$",
+    re.IGNORECASE,
+)
 INVENTORY_PURCHASE_PATTERN = re.compile(
     rf"\b(?:bought|purchased|buy|stocked|restocked)\s+"
     rf"(?P<quantity>\d+(?:\.\d+)?)\s+"
@@ -81,9 +92,17 @@ def parse_transaction(note: str) -> Transaction:
     if sale:
         return sale
 
+    shorthand_sale = _parse_shorthand_sale(cleaned_note)
+    if shorthand_sale:
+        return shorthand_sale
+
     expense = _parse_expense(cleaned_note)
     if expense:
         return expense
+
+    shorthand_expense = _parse_shorthand_expense(cleaned_note)
+    if shorthand_expense:
+        return shorthand_expense
 
     return Transaction(notes=cleaned_note, confidence=0.15)
 
@@ -129,6 +148,42 @@ def _parse_expense(note: str) -> Transaction | None:
         payment_status="paid",
         notes=note,
         confidence=0.88,
+    )
+
+
+def _parse_shorthand_sale(note: str) -> Transaction | None:
+    """Parse notes like 'mango 12 x 20'."""
+    match = SHORTHAND_SALE_PATTERN.search(note)
+    if not match:
+        return None
+
+    quantity = _to_float(match.group("quantity"))
+    unit_price = _to_float(match.group("unit_price"))
+    return Transaction(
+        transaction_type="sale",
+        item=_clean_item(match.group("item")),
+        quantity=quantity,
+        unit_price=unit_price,
+        amount=round(quantity * unit_price, 2) if quantity is not None and unit_price is not None else None,
+        payment_status="paid",
+        notes=note,
+        confidence=0.82,
+    )
+
+
+def _parse_shorthand_expense(note: str) -> Transaction | None:
+    """Parse notes like 'rent 300'."""
+    match = SHORTHAND_EXPENSE_PATTERN.search(note)
+    if not match:
+        return None
+
+    return Transaction(
+        transaction_type="expense",
+        item=_clean_item(match.group("item")),
+        amount=_to_float(match.group("amount")),
+        payment_status="paid",
+        notes=note,
+        confidence=0.68,
     )
 
 

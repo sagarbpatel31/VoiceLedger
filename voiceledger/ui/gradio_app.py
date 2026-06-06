@@ -19,6 +19,7 @@ from voiceledger.ledger.analytics import (
 from voiceledger.ledger.customers import get_customer_balances
 from voiceledger.ledger.database import add_transaction, get_transactions, initialize_database
 from voiceledger.ledger.inventory import get_inventory
+from voiceledger.parser.bulk import REVIEW_COLUMNS, parse_bulk_notes, review_table_to_transactions
 from voiceledger.parser.rules import parse_transaction
 from voiceledger.parser.schema import Transaction
 from voiceledger.reports.pdf_report import generate_daily_summary_pdf
@@ -80,6 +81,33 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                 fn=lambda transaction: _save_transaction(transaction, db_path),
                 inputs=parsed_state,
                 outputs=status_output,
+            )
+
+        with gr.Tab("Bulk Import"):
+            bulk_notes_input = gr.Textbox(
+                label="Paste transaction notes",
+                placeholder="mango 12 x 20\nrent 300\nAmit owes 100\nRamesh paid 50",
+                lines=8,
+            )
+            with gr.Row():
+                bulk_parse_button = gr.Button("Parse Lines", variant="primary")
+                bulk_save_button = gr.Button("Save All Transactions")
+            bulk_review_output = gr.Dataframe(
+                headers=REVIEW_COLUMNS,
+                label="Review and edit transactions",
+                interactive=True,
+                wrap=True,
+            )
+            bulk_status_output = gr.Markdown()
+            bulk_parse_button.click(
+                fn=_parse_bulk_notes_for_review,
+                inputs=bulk_notes_input,
+                outputs=[bulk_review_output, bulk_status_output],
+            )
+            bulk_save_button.click(
+                fn=lambda review_table: _save_bulk_transactions(review_table, db_path),
+                inputs=bulk_review_output,
+                outputs=bulk_status_output,
             )
 
         with gr.Tab("Dashboard"):
@@ -259,6 +287,28 @@ def _save_transaction(transaction_payload: dict[str, Any] | None, db_path: str |
     transaction = Transaction(**transaction_payload)
     transaction_id = add_transaction(transaction, db_path)
     return f"Saved transaction #{transaction_id}."
+
+
+def _parse_bulk_notes_for_review(notes: str) -> tuple[pd.DataFrame, str]:
+    """Parse pasted multiline notes into an editable review table."""
+    review_table = parse_bulk_notes(notes)
+    if review_table.empty:
+        return review_table, "Paste one transaction per line, then parse."
+    return review_table, f"Parsed {len(review_table)} transaction lines. Review and edit before saving."
+
+
+def _save_bulk_transactions(review_table: Any, db_path: str | Path | None) -> str:
+    """Save all reviewed bulk import transactions."""
+    try:
+        transactions = review_table_to_transactions(review_table)
+    except Exception as exc:
+        return f"Could not save bulk import: {exc}"
+
+    if not transactions:
+        return "No reviewed transactions to save."
+
+    saved_ids = [add_transaction(transaction, db_path) for transaction in transactions]
+    return f"Saved {len(saved_ids)} transactions. Last transaction id: #{saved_ids[-1]}."
 
 
 def _get_dashboard_data(

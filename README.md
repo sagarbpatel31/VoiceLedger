@@ -6,6 +6,7 @@ The current version focuses on a clean, deterministic foundation:
 
 - Record a transaction with your microphone and transcribe it with faster-whisper.
 - Type or paste a transaction note.
+- Bulk import multiple pasted notes for review and editing.
 - Parse it with simple rules.
 - Save the structured transaction to SQLite.
 - View the ledger, customer credit book, and inventory in a Gradio interface.
@@ -20,7 +21,9 @@ LLM parsing is intentionally not implemented yet.
 | Input | Parsed result |
 | --- | --- |
 | `Sold 12 mangoes, 20 each` | Sale, quantity `12`, item `mangoes`, unit price `20`, amount `240` |
+| `mango 12 x 20` | Sale, quantity `12`, item `mango`, unit price `20`, amount `240` |
 | `Paid 500 for supplies` | Expense, amount `500`, item `supplies` |
+| `rent 300` | Expense, amount `300`, item `rent` |
 | `Bought 50 mangoes` | Inventory purchase, quantity `50`, item `mangoes` |
 | `Amit owes 100` | Customer credit, customer `Amit`, amount `100` |
 | `Amit paid 50` | Customer payment, customer `Amit`, amount `50` |
@@ -74,3 +77,4 @@ pytest
 - Parser architecture supports rule-based and Hugging Face Inference API compatible LLM parsers, with rule fallback on LLM failure.
 - The dashboard shows daily sales, expenses, profit, outstanding credit, top sellers, and low-stock alerts from saved data.
 - WhatsApp summaries provide a short copyable daily recap for sharing.
+- Bulk import splits pasted notes by line, parses each line, supports review edits, and saves all reviewed transactions.
