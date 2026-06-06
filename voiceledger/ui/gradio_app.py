@@ -13,6 +13,7 @@ from voiceledger.ledger.database import add_transaction, get_transactions, initi
 from voiceledger.ledger.inventory import get_inventory
 from voiceledger.parser.rules import parse_transaction
 from voiceledger.parser.schema import Transaction
+from voiceledger.reports.pdf_report import generate_daily_summary_pdf
 from voiceledger.speech.transcribe import TranscriptionError, transcribe_audio
 
 
@@ -110,6 +111,16 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                 outputs=inventory_output,
             )
 
+        with gr.Tab("Reports"):
+            generate_report_button = gr.Button("Generate Daily Summary PDF", variant="primary")
+            report_status_output = gr.Markdown()
+            report_file_output = gr.File(label="Daily Summary PDF")
+            generate_report_button.click(
+                fn=lambda: _generate_daily_summary_report(db_path),
+                inputs=None,
+                outputs=[report_file_output, report_status_output],
+            )
+
         with gr.Tab("Ledger"):
             refresh_button = gr.Button("Refresh Ledger")
             ledger_output = gr.Dataframe(
@@ -179,6 +190,15 @@ def _get_inventory_display(db_path: str | Path | None) -> pd.io.formats.style.St
     """Return inventory with low-stock rows highlighted for Gradio display."""
     inventory = get_inventory(db_path)
     return inventory.style.apply(_highlight_low_stock, axis=1)
+
+
+def _generate_daily_summary_report(db_path: str | Path | None) -> tuple[str | None, str]:
+    """Generate the Daily Summary PDF for download in Gradio."""
+    try:
+        report_path = generate_daily_summary_pdf(db_path=db_path)
+    except Exception as exc:
+        return None, f"Could not generate report: {exc}"
+    return str(report_path), "Daily Summary PDF is ready."
 
 
 def _highlight_low_stock(row: pd.Series) -> list[str]:

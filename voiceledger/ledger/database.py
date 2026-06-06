@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import sqlite3
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -76,9 +77,10 @@ def add_transaction(transaction: Transaction, db_path: str | Path | None = None)
                 customer,
                 payment_status,
                 notes,
-                confidence
+                confidence,
+                created_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 payload["transaction_type"],
@@ -90,6 +92,7 @@ def add_transaction(transaction: Transaction, db_path: str | Path | None = None)
                 payload["payment_status"],
                 payload["notes"],
                 payload["confidence"],
+                datetime.now().isoformat(sep=" ", timespec="seconds"),
             ),
         )
         connection.commit()

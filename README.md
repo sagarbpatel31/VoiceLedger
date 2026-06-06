@@ -9,6 +9,7 @@ The current version focuses on a clean, deterministic foundation:
 - Parse it with simple rules.
 - Save the structured transaction to SQLite.
 - View the ledger, customer credit book, and inventory in a Gradio interface.
+- Download a Daily Summary PDF report.
 
 LLM parsing is intentionally not implemented yet.
 
@@ -67,3 +68,4 @@ pytest
 - The parser is intentionally transparent and easy to extend for hackathon iteration.
 - Customer credit balances are updated when parsed customer credit or payment transactions are saved.
 - Inventory stock is updated when parsed inventory purchases or sales are saved.
+- PDF reports are generated with fpdf2 from the current SQLite ledger state.
