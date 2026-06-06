@@ -9,6 +9,7 @@ from typing import Any
 import pandas as pd
 
 from voiceledger.config import get_database_path
+from voiceledger.ledger.customers import add_credit, initialize_customers_table, record_payment
 from voiceledger.parser.schema import Transaction
 
 
@@ -52,6 +53,7 @@ def initialize_database(db_path: str | Path | None = None) -> Path:
         connection.execute(SCHEMA_SQL)
         connection.commit()
 
+    initialize_customers_table(path)
     return path
 
 
@@ -89,7 +91,10 @@ def add_transaction(transaction: Transaction, db_path: str | Path | None = None)
             ),
         )
         connection.commit()
-        return int(cursor.lastrowid)
+        transaction_id = int(cursor.lastrowid)
+
+    _apply_customer_balance_update(transaction, path)
+    return transaction_id
 
 
 def get_transactions(db_path: str | Path | None = None) -> pd.DataFrame:
@@ -125,3 +130,14 @@ def _resolve_db_path(db_path: str | Path | None) -> Path:
     if db_path is None:
         return get_database_path()
     return Path(db_path).expanduser()
+
+
+def _apply_customer_balance_update(transaction: Transaction, db_path: Path) -> None:
+    """Apply customer balance side effects for credit-related transactions."""
+    if not transaction.customer or transaction.amount is None:
+        return
+
+    if transaction.transaction_type == "customer_credit":
+        add_credit(transaction.customer, transaction.amount, db_path)
+    elif transaction.transaction_type == "customer_payment":
+        record_payment(transaction.customer, transaction.amount, db_path)

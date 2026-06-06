@@ -31,6 +31,12 @@ CREDIT_PATTERN = re.compile(
     rf"(?P<amount>\d+(?:\.\d+)?)\b",
     re.IGNORECASE,
 )
+CUSTOMER_PAYMENT_PATTERN = re.compile(
+    rf"^\s*(?P<customer>[a-zA-Z][a-zA-Z\s-]*?)\s+"
+    rf"(?:paid|pays|settled|repaid)\s+"
+    rf"(?P<amount>\d+(?:\.\d+)?)\b",
+    re.IGNORECASE,
+)
 
 
 def parse_transaction(note: str) -> Transaction:
@@ -46,6 +52,10 @@ def parse_transaction(note: str) -> Transaction:
     credit = _parse_customer_credit(cleaned_note)
     if credit:
         return credit
+
+    customer_payment = _parse_customer_payment(cleaned_note)
+    if customer_payment:
+        return customer_payment
 
     sale = _parse_sale(cleaned_note)
     if sale:
@@ -113,6 +123,22 @@ def _parse_customer_credit(note: str) -> Transaction | None:
         customer=_clean_name(match.group("customer")),
         amount=_to_float(match.group("amount")),
         payment_status="credit",
+        notes=note,
+        confidence=0.9,
+    )
+
+
+def _parse_customer_payment(note: str) -> Transaction | None:
+    """Parse notes like 'Amit paid 50'."""
+    match = CUSTOMER_PAYMENT_PATTERN.search(note)
+    if not match:
+        return None
+
+    return Transaction(
+        transaction_type="customer_payment",
+        customer=_clean_name(match.group("customer")),
+        amount=_to_float(match.group("amount")),
+        payment_status="paid",
         notes=note,
         confidence=0.9,
     )

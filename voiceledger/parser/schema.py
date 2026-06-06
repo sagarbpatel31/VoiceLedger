@@ -7,7 +7,7 @@ from typing import Literal
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 
-TransactionType = Literal["sale", "expense", "customer_credit", "unknown"]
+TransactionType = Literal["sale", "expense", "customer_credit", "customer_payment", "unknown"]
 PaymentStatus = Literal["paid", "unpaid", "credit", "unknown"]
 
 

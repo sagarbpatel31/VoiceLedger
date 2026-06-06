@@ -19,6 +19,7 @@ LLM parsing is intentionally not implemented yet.
 | `Sold 12 mangoes, 20 each` | Sale, quantity `12`, item `mangoes`, unit price `20`, amount `240` |
 | `Paid 500 for supplies` | Expense, amount `500`, item `supplies` |
 | `Amit owes 100` | Customer credit, customer `Amit`, amount `100` |
+| `Amit paid 50` | Customer payment, customer `Amit`, amount `50` |
 
 ## Repository Structure
 
@@ -63,3 +64,4 @@ pytest
 - Speech transcription uses the faster-whisper `small` model and loads lazily on first use.
 - LLM parsing is not wired up yet.
 - The parser is intentionally transparent and easy to extend for hackathon iteration.
+- Customer credit balances are updated when parsed customer credit or payment transactions are saved.

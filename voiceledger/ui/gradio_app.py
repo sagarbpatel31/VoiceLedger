@@ -7,6 +7,7 @@ from typing import Any
 
 import gradio as gr
 
+from voiceledger.ledger.customers import get_customer_balances
 from voiceledger.ledger.database import add_transaction, get_transactions, initialize_database
 from voiceledger.parser.rules import parse_transaction
 from voiceledger.parser.schema import Transaction
@@ -64,6 +65,25 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                 fn=lambda transaction: _save_transaction(transaction, db_path),
                 inputs=parsed_state,
                 outputs=status_output,
+            )
+
+        with gr.Tab("Customer Credit Book"):
+            refresh_customer_button = gr.Button("Refresh Customer Credit Book")
+            customer_balances_output = gr.Dataframe(
+                headers=["customer", "outstanding_balance"],
+                label="Customer balances",
+                interactive=False,
+                wrap=True,
+            )
+            refresh_customer_button.click(
+                fn=lambda: get_customer_balances(db_path),
+                inputs=None,
+                outputs=customer_balances_output,
+            )
+            demo.load(
+                fn=lambda: get_customer_balances(db_path),
+                inputs=None,
+                outputs=customer_balances_output,
             )
 
         with gr.Tab("Ledger"):

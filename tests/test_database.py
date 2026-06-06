@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from voiceledger.ledger.customers import get_customer_balances
 from voiceledger.ledger.database import add_transaction, get_transactions, initialize_database
 from voiceledger.parser.rules import parse_transaction
 
@@ -25,3 +26,26 @@ def test_add_and_get_transactions(tmp_path: Path) -> None:
     assert ledger.iloc[0]["transaction_type"] == "sale"
     assert ledger.iloc[0]["item"] == "mangoes"
     assert ledger.iloc[0]["amount"] == 240
+
+
+def test_customer_credit_transaction_updates_balance(tmp_path: Path) -> None:
+    db_path = tmp_path / "voiceledger.sqlite3"
+
+    add_transaction(parse_transaction("Amit owes 100"), db_path)
+    balances = get_customer_balances(db_path)
+
+    assert len(balances) == 1
+    assert balances.iloc[0]["customer"] == "Amit"
+    assert balances.iloc[0]["outstanding_balance"] == 100
+
+
+def test_customer_payment_transaction_decreases_balance(tmp_path: Path) -> None:
+    db_path = tmp_path / "voiceledger.sqlite3"
+
+    add_transaction(parse_transaction("Amit owes 100"), db_path)
+    add_transaction(parse_transaction("Amit paid 50"), db_path)
+    balances = get_customer_balances(db_path)
+
+    assert len(balances) == 1
+    assert balances.iloc[0]["customer"] == "Amit"
+    assert balances.iloc[0]["outstanding_balance"] == 50

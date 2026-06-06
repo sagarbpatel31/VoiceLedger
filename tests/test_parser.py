@@ -30,6 +30,15 @@ def test_parse_customer_credit() -> None:
     assert transaction.payment_status == "credit"
 
 
+def test_parse_customer_payment() -> None:
+    transaction = parse_transaction("Amit paid 50")
+
+    assert transaction.transaction_type == "customer_payment"
+    assert transaction.customer == "Amit"
+    assert transaction.amount == 50
+    assert transaction.payment_status == "paid"
+
+
 def test_unknown_note_is_preserved() -> None:
     transaction = parse_transaction("Need to check yesterday")
 
