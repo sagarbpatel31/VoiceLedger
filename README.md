@@ -81,4 +81,5 @@ pytest
 - WhatsApp summaries provide a short copyable daily recap for sharing.
 - Bulk import splits pasted notes by line, parses each line, supports review edits, and saves all reviewed transactions.
 - Modal integration lives in `backend/`; if endpoint URLs are not configured, local fallback stays active.
+- NVIDIA Nemotron 3 Nano 4B is available as a local `transformers` parser provider for strict JSON transaction extraction.
 - The UI uses a custom theme, responsive spacing, and dashboard cards instead of the default Gradio look.

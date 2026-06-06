@@ -3,6 +3,7 @@
 from voiceledger.parser.base import Parser
 from voiceledger.parser.bulk import parse_bulk_notes, review_table_to_transactions
 from voiceledger.parser.llm_parser import LLMParser
+from voiceledger.parser.providers.nemotron import NemotronParser
 from voiceledger.parser.rules import RuleParser
 from voiceledger.parser.rules import parse_transaction
 from voiceledger.parser.schema import Transaction
@@ -12,6 +13,7 @@ __all__ = [
     "Parser",
     "RuleParser",
     "LLMParser",
+    "NemotronParser",
     "parse_transaction",
     "parse_bulk_notes",
     "review_table_to_transactions",

@@ -48,7 +48,7 @@ VOICELEDGER_MODAL_API_TOKEN=optional-shared-token
 The deployment uses:
 
 - faster-whisper `small` for speech-to-text
-- `nvidia/Llama-3.1-Nemotron-Nano-8B-v1` through Hugging Face Inference by default
+- `nvidia/NVIDIA-Nemotron-3-Nano-4B` through Hugging Face Inference by default
 
 Override the parser model with:
 

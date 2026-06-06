@@ -5,3 +5,5 @@ pytest>=8.2.0
 faster-whisper>=1.1.0
 fpdf2>=2.8.0
 requests>=2.32.0
+transformers>=4.44.0
+torch>=2.2.0

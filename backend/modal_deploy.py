@@ -16,7 +16,7 @@ from typing import Any
 import modal
 
 
-NEMOTRON_MODEL = os.getenv("NEMOTRON_MODEL", "nvidia/Llama-3.1-Nemotron-Nano-8B-v1")
+NEMOTRON_MODEL = os.getenv("NEMOTRON_MODEL", "nvidia/NVIDIA-Nemotron-3-Nano-4B")
 
 image = (
     modal.Image.debian_slim(python_version="3.11")
