@@ -8,6 +8,14 @@ from typing import Any
 import gradio as gr
 import pandas as pd
 
+from voiceledger.ledger.analytics import (
+    calculate_daily_expenses,
+    calculate_daily_sales,
+    calculate_net_profit,
+    low_stock_items,
+    outstanding_credit,
+    top_selling_items,
+)
 from voiceledger.ledger.customers import get_customer_balances
 from voiceledger.ledger.database import add_transaction, get_transactions, initialize_database
 from voiceledger.ledger.inventory import get_inventory
@@ -71,6 +79,56 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                 fn=lambda transaction: _save_transaction(transaction, db_path),
                 inputs=parsed_state,
                 outputs=status_output,
+            )
+
+        with gr.Tab("Dashboard"):
+            refresh_dashboard_button = gr.Button("Refresh Dashboard", variant="primary")
+            with gr.Row():
+                total_sales_output = gr.Number(label="Total Sales Today", precision=2)
+                total_expenses_output = gr.Number(label="Total Expenses Today", precision=2)
+                net_profit_output = gr.Number(label="Net Profit", precision=2)
+                outstanding_credit_output = gr.Number(label="Outstanding Credit", precision=2)
+            top_selling_item_output = gr.Textbox(label="Top Selling Item", interactive=False)
+            with gr.Row():
+                top_items_plot = gr.BarPlot(
+                    x="item",
+                    y="quantity_sold",
+                    title="Top Selling Items",
+                    x_title="Item",
+                    y_title="Quantity Sold",
+                    vertical=False,
+                )
+                low_stock_output = gr.Dataframe(
+                    headers=["item", "current_stock"],
+                    label="Low Inventory Alerts",
+                    interactive=False,
+                    wrap=True,
+                )
+            refresh_dashboard_button.click(
+                fn=lambda: _get_dashboard_data(db_path),
+                inputs=None,
+                outputs=[
+                    total_sales_output,
+                    total_expenses_output,
+                    net_profit_output,
+                    outstanding_credit_output,
+                    top_selling_item_output,
+                    top_items_plot,
+                    low_stock_output,
+                ],
+            )
+            demo.load(
+                fn=lambda: _get_dashboard_data(db_path),
+                inputs=None,
+                outputs=[
+                    total_sales_output,
+                    total_expenses_output,
+                    net_profit_output,
+                    outstanding_credit_output,
+                    top_selling_item_output,
+                    top_items_plot,
+                    low_stock_output,
+                ],
             )
 
         with gr.Tab("Customer Credit Book"):
@@ -186,6 +244,28 @@ def _save_transaction(transaction_payload: dict[str, Any] | None, db_path: str |
     return f"Saved transaction #{transaction_id}."
 
 
+def _get_dashboard_data(
+    db_path: str | Path | None,
+) -> tuple[float, float, float, float, str, pd.DataFrame, pd.DataFrame]:
+    """Return business insight values for the Dashboard tab."""
+    top_items = top_selling_items(db_path)
+    low_stock = low_stock_items(db_path, threshold=LOW_STOCK_THRESHOLD)
+    top_item = "No sales recorded today"
+    if not top_items.empty:
+        first_item = top_items.iloc[0]
+        top_item = f"{first_item['item']} ({_format_quantity(first_item['quantity_sold'])} sold)"
+
+    return (
+        calculate_daily_sales(db_path),
+        calculate_daily_expenses(db_path),
+        calculate_net_profit(db_path),
+        outstanding_credit(db_path),
+        top_item,
+        top_items,
+        low_stock,
+    )
+
+
 def _get_inventory_display(db_path: str | Path | None) -> pd.io.formats.style.Styler:
     """Return inventory with low-stock rows highlighted for Gradio display."""
     inventory = get_inventory(db_path)
@@ -207,6 +287,14 @@ def _highlight_low_stock(row: pd.Series) -> list[str]:
     if current_stock is not None and float(current_stock) < LOW_STOCK_THRESHOLD:
         return ["background-color: #fff3cd; color: #5f370e"] * len(row)
     return [""] * len(row)
+
+
+def _format_quantity(value: object) -> str:
+    """Format quantity values for concise dashboard text."""
+    quantity = float(value)
+    if quantity.is_integer():
+        return str(int(quantity))
+    return f"{quantity:.2f}"
 
 
 def _empty_transaction_payload() -> dict[str, Any]:

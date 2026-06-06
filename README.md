@@ -9,6 +9,7 @@ The current version focuses on a clean, deterministic foundation:
 - Parse it with simple rules.
 - Save the structured transaction to SQLite.
 - View the ledger, customer credit book, and inventory in a Gradio interface.
+- Monitor business insights in a dashboard.
 - Download a Daily Summary PDF report.
 
 LLM parsing is intentionally not implemented yet.
@@ -70,3 +71,4 @@ pytest
 - Inventory stock is updated when parsed inventory purchases or sales are saved.
 - PDF reports are generated with fpdf2 from the current SQLite ledger state.
 - Parser architecture supports rule-based and Hugging Face Inference API compatible LLM parsers, with rule fallback on LLM failure.
+- The dashboard shows daily sales, expenses, profit, outstanding credit, top sellers, and low-stock alerts from saved data.
