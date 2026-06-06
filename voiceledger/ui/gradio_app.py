@@ -25,6 +25,7 @@ from voiceledger.parser.schema import Transaction
 from voiceledger.reports.pdf_report import generate_daily_summary_pdf
 from voiceledger.reports.whatsapp_summary import generate_whatsapp_summary
 from voiceledger.speech.transcribe import TranscriptionError, transcribe_audio
+from voiceledger.ui.theme import APP_CSS, create_theme
 
 
 LOW_STOCK_THRESHOLD = 5
@@ -34,89 +35,30 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
     """Create and return the Gradio Blocks app."""
     initialize_database(db_path)
 
-    with gr.Blocks(title="VoiceLedger") as demo:
-        gr.Markdown("# VoiceLedger")
+    with gr.Blocks(
+        title="VoiceLedger",
+        theme=create_theme(),
+        css=APP_CSS,
+        elem_id="voiceledger-app",
+    ) as demo:
+        gr.HTML(
+            """
+            <section class="vl-hero">
+              <h1>VoiceLedger</h1>
+              <p>Daily sales, credit, stock, and reports in one working screen.</p>
+            </section>
+            """
+        )
 
         parsed_state = gr.State(value=None)
 
-        with gr.Tab("Record Transaction"):
-            with gr.Row():
-                with gr.Column():
-                    note_input = gr.Textbox(
-                        label="Transaction note",
-                        placeholder="Sold 12 mangoes, 20 each",
-                        lines=4,
-                    )
-                    parse_button = gr.Button("Parse Text", variant="primary")
-                with gr.Column():
-                    audio_input = gr.Audio(
-                        label="Record transaction",
-                        sources=["microphone"],
-                        type="filepath",
-                    )
-                    transcribe_button = gr.Button("Transcribe & Parse", variant="primary")
-                    transcript_output = gr.Textbox(
-                        label="Transcript",
-                        lines=3,
-                        interactive=False,
-                    )
-
-            with gr.Row():
-                save_button = gr.Button("Save")
-
-            structured_output = gr.JSON(label="Structured output")
-            status_output = gr.Markdown()
-
-            parse_button.click(
-                fn=_parse_note,
-                inputs=note_input,
-                outputs=[structured_output, parsed_state, status_output],
-            )
-            transcribe_button.click(
-                fn=_transcribe_and_parse_audio,
-                inputs=audio_input,
-                outputs=[transcript_output, structured_output, parsed_state, status_output],
-            )
-            save_button.click(
-                fn=lambda transaction: _save_transaction(transaction, db_path),
-                inputs=parsed_state,
-                outputs=status_output,
-            )
-
-        with gr.Tab("Bulk Import"):
-            bulk_notes_input = gr.Textbox(
-                label="Paste transaction notes",
-                placeholder="mango 12 x 20\nrent 300\nAmit owes 100\nRamesh paid 50",
-                lines=8,
-            )
-            with gr.Row():
-                bulk_parse_button = gr.Button("Parse Lines", variant="primary")
-                bulk_save_button = gr.Button("Save All Transactions")
-            bulk_review_output = gr.Dataframe(
-                headers=REVIEW_COLUMNS,
-                label="Review and edit transactions",
-                interactive=True,
-                wrap=True,
-            )
-            bulk_status_output = gr.Markdown()
-            bulk_parse_button.click(
-                fn=_parse_bulk_notes_for_review,
-                inputs=bulk_notes_input,
-                outputs=[bulk_review_output, bulk_status_output],
-            )
-            bulk_save_button.click(
-                fn=lambda review_table: _save_bulk_transactions(review_table, db_path),
-                inputs=bulk_review_output,
-                outputs=bulk_status_output,
-            )
-
         with gr.Tab("Dashboard"):
             refresh_dashboard_button = gr.Button("Refresh Dashboard", variant="primary")
-            with gr.Row():
-                total_sales_output = gr.Number(label="Total Sales Today", precision=2)
-                total_expenses_output = gr.Number(label="Total Expenses Today", precision=2)
-                net_profit_output = gr.Number(label="Net Profit", precision=2)
-                outstanding_credit_output = gr.Number(label="Outstanding Credit", precision=2)
+            with gr.Row(elem_classes="vl-metric-grid"):
+                total_sales_output = gr.HTML()
+                total_expenses_output = gr.HTML()
+                net_profit_output = gr.HTML()
+                outstanding_credit_output = gr.HTML()
             top_selling_item_output = gr.Textbox(label="Top Selling Item", interactive=False)
             with gr.Row():
                 top_items_plot = gr.BarPlot(
@@ -126,12 +68,14 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                     x_title="Item",
                     y_title="Quantity Sold",
                     vertical=False,
+                    elem_classes="vl-panel",
                 )
                 low_stock_output = gr.Dataframe(
                     headers=["item", "current_stock"],
                     label="Low Inventory Alerts",
                     interactive=False,
                     wrap=True,
+                    elem_classes="vl-panel",
                 )
             refresh_dashboard_button.click(
                 fn=lambda: _get_dashboard_data(db_path),
@@ -160,6 +104,82 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                 ],
             )
 
+        with gr.Tab("Record"):
+            with gr.Row():
+                with gr.Column():
+                    note_input = gr.Textbox(
+                        label="Transaction note",
+                        placeholder="Sold 12 mangoes, 20 each",
+                        lines=4,
+                        elem_classes="vl-panel",
+                    )
+                    parse_button = gr.Button("Parse Text", variant="primary")
+                with gr.Column():
+                    audio_input = gr.Audio(
+                        label="Record transaction",
+                        sources=["microphone"],
+                        type="filepath",
+                        elem_classes="vl-panel",
+                    )
+                    transcribe_button = gr.Button("Transcribe & Parse", variant="primary")
+                    transcript_output = gr.Textbox(
+                        label="Transcript",
+                        lines=3,
+                        interactive=False,
+                        elem_classes="vl-panel",
+                    )
+
+            with gr.Row():
+                save_button = gr.Button("Save")
+
+            structured_output = gr.JSON(label="Structured output", elem_classes="vl-panel")
+            status_output = gr.Markdown(elem_classes="vl-status")
+
+            parse_button.click(
+                fn=_parse_note,
+                inputs=note_input,
+                outputs=[structured_output, parsed_state, status_output],
+            )
+            transcribe_button.click(
+                fn=_transcribe_and_parse_audio,
+                inputs=audio_input,
+                outputs=[transcript_output, structured_output, parsed_state, status_output],
+            )
+            save_button.click(
+                fn=lambda transaction: _save_transaction(transaction, db_path),
+                inputs=parsed_state,
+                outputs=status_output,
+            )
+
+        with gr.Tab("Bulk Import"):
+            bulk_notes_input = gr.Textbox(
+                label="Paste transaction notes",
+                placeholder="mango 12 x 20\nrent 300\nAmit owes 100\nRamesh paid 50",
+                lines=8,
+                elem_classes="vl-panel",
+            )
+            with gr.Row():
+                bulk_parse_button = gr.Button("Parse Lines", variant="primary")
+                bulk_save_button = gr.Button("Save All Transactions")
+            bulk_review_output = gr.Dataframe(
+                headers=REVIEW_COLUMNS,
+                label="Review and edit transactions",
+                interactive=True,
+                wrap=True,
+                elem_classes="vl-panel",
+            )
+            bulk_status_output = gr.Markdown(elem_classes="vl-status")
+            bulk_parse_button.click(
+                fn=_parse_bulk_notes_for_review,
+                inputs=bulk_notes_input,
+                outputs=[bulk_review_output, bulk_status_output],
+            )
+            bulk_save_button.click(
+                fn=lambda review_table: _save_bulk_transactions(review_table, db_path),
+                inputs=bulk_review_output,
+                outputs=bulk_status_output,
+            )
+
         with gr.Tab("Customer Credit Book"):
             refresh_customer_button = gr.Button("Refresh Customer Credit Book")
             customer_balances_output = gr.Dataframe(
@@ -167,6 +187,7 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                 label="Customer balances",
                 interactive=False,
                 wrap=True,
+                elem_classes="vl-panel",
             )
             refresh_customer_button.click(
                 fn=lambda: get_customer_balances(db_path),
@@ -186,6 +207,7 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                 label="Current stock",
                 interactive=False,
                 wrap=True,
+                elem_classes="vl-panel",
             )
             refresh_inventory_button.click(
                 fn=lambda: _get_inventory_display(db_path),
@@ -200,8 +222,8 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
 
         with gr.Tab("Reports"):
             generate_report_button = gr.Button("Generate Daily Summary PDF", variant="primary")
-            report_status_output = gr.Markdown()
-            report_file_output = gr.File(label="Daily Summary PDF")
+            report_status_output = gr.Markdown(elem_classes="vl-status")
+            report_file_output = gr.File(label="Daily Summary PDF", elem_classes="vl-panel")
             generate_report_button.click(
                 fn=lambda: _generate_daily_summary_report(db_path),
                 inputs=None,
@@ -214,6 +236,7 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                 lines=10,
                 interactive=False,
                 show_copy_button=True,
+                elem_classes="vl-panel",
             )
             generate_whatsapp_button.click(
                 fn=lambda: generate_whatsapp_summary(
@@ -243,6 +266,7 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                 label="Saved transactions",
                 interactive=False,
                 wrap=True,
+                elem_classes="vl-panel",
             )
             refresh_button.click(
                 fn=lambda: get_transactions(db_path),
@@ -313,8 +337,12 @@ def _save_bulk_transactions(review_table: Any, db_path: str | Path | None) -> st
 
 def _get_dashboard_data(
     db_path: str | Path | None,
-) -> tuple[float, float, float, float, str, pd.DataFrame, pd.DataFrame]:
+) -> tuple[str, str, str, str, str, pd.DataFrame, pd.DataFrame]:
     """Return business insight values for the Dashboard tab."""
+    sales = calculate_daily_sales(db_path)
+    expenses = calculate_daily_expenses(db_path)
+    profit = calculate_net_profit(db_path)
+    credit = outstanding_credit(db_path)
     top_items = top_selling_items(db_path)
     low_stock = low_stock_items(db_path, threshold=LOW_STOCK_THRESHOLD)
     top_item = "No sales recorded today"
@@ -323,10 +351,10 @@ def _get_dashboard_data(
         top_item = f"{first_item['item']} ({_format_quantity(first_item['quantity_sold'])} sold)"
 
     return (
-        calculate_daily_sales(db_path),
-        calculate_daily_expenses(db_path),
-        calculate_net_profit(db_path),
-        outstanding_credit(db_path),
+        _metric_card("Total Sales Today", _format_money(sales), "Recorded sales"),
+        _metric_card("Total Expenses Today", _format_money(expenses), "Purchases and costs"),
+        _metric_card("Net Profit", _format_money(profit), "Sales minus expenses", profit=profit),
+        _metric_card("Outstanding Credit", _format_money(credit), "Customer dues"),
         top_item,
         top_items,
         low_stock,
@@ -346,6 +374,28 @@ def _generate_daily_summary_report(db_path: str | Path | None) -> tuple[str | No
     except Exception as exc:
         return None, f"Could not generate report: {exc}"
     return str(report_path), "Daily Summary PDF is ready."
+
+
+def _metric_card(label: str, value: str, note: str, profit: float | None = None) -> str:
+    """Render a dashboard metric card."""
+    tone = ""
+    if profit is not None:
+        tone = " vl-profit-positive" if profit >= 0 else " vl-profit-negative"
+    return f"""
+    <div class="vl-metric-card{tone}">
+      <div class="vl-metric-label">{label}</div>
+      <div class="vl-metric-value">{value}</div>
+      <div class="vl-metric-note">{note}</div>
+    </div>
+    """
+
+
+def _format_money(value: float) -> str:
+    """Format money for dashboard cards."""
+    amount = float(value)
+    if amount.is_integer():
+        return f"₹{int(amount):,}"
+    return f"₹{amount:,.2f}"
 
 
 def _highlight_low_stock(row: pd.Series) -> list[str]:

@@ -11,6 +11,7 @@ The current version focuses on a clean, deterministic foundation:
 - Save the structured transaction to SQLite.
 - View the ledger, customer credit book, and inventory in a Gradio interface.
 - Monitor business insights in a dashboard.
+- Use a mobile-first, business-style Gradio interface with custom styling.
 - Download a Daily Summary PDF report.
 - Generate a WhatsApp-ready daily business summary.
 
@@ -78,3 +79,4 @@ pytest
 - The dashboard shows daily sales, expenses, profit, outstanding credit, top sellers, and low-stock alerts from saved data.
 - WhatsApp summaries provide a short copyable daily recap for sharing.
 - Bulk import splits pasted notes by line, parses each line, supports review edits, and saves all reviewed transactions.
+- The UI uses a custom theme, responsive spacing, and dashboard cards instead of the default Gradio look.
