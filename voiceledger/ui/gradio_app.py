@@ -2,8 +2,14 @@
 
 from __future__ import annotations
 
+import os
+import tempfile
 from pathlib import Path
 from typing import Any
+
+_cache_dir = Path(tempfile.gettempdir()) / "voiceledger-cache"
+os.environ.setdefault("MPLCONFIGDIR", str(_cache_dir / "matplotlib"))
+os.environ.setdefault("XDG_CACHE_HOME", str(_cache_dir))
 
 import gradio as gr
 import pandas as pd
@@ -47,239 +53,240 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
 
         parsed_state = gr.State(value=None)
 
-        with gr.Tab("Dashboard"):
-            refresh_dashboard_button = gr.Button("Refresh Dashboard", variant="primary")
-            with gr.Row(elem_classes="vl-metric-grid"):
-                total_sales_output = gr.HTML()
-                total_expenses_output = gr.HTML()
-                net_profit_output = gr.HTML()
-                outstanding_credit_output = gr.HTML()
-            top_selling_item_output = gr.Textbox(label="Top Selling Item", interactive=False)
-            with gr.Row():
-                top_items_output = gr.Dataframe(
-                    headers=["item", "quantity_sold", "sales_amount"],
-                    label="Top Selling Items",
-                    interactive=False,
-                    wrap=True,
-                    elem_classes="vl-panel",
-                )
-                low_stock_output = gr.Dataframe(
-                    headers=["item", "current_stock"],
-                    label="Low Inventory Alerts",
-                    interactive=False,
-                    wrap=True,
-                    elem_classes="vl-panel",
-                )
-            refresh_dashboard_button.click(
-                fn=lambda: _get_dashboard_data(db_path),
-                inputs=None,
-                outputs=[
-                    total_sales_output,
-                    total_expenses_output,
-                    net_profit_output,
-                    outstanding_credit_output,
-                    top_selling_item_output,
-                    top_items_output,
-                    low_stock_output,
-                ],
-            )
-            demo.load(
-                fn=lambda: _get_dashboard_data(db_path),
-                inputs=None,
-                outputs=[
-                    total_sales_output,
-                    total_expenses_output,
-                    net_profit_output,
-                    outstanding_credit_output,
-                    top_selling_item_output,
-                    top_items_output,
-                    low_stock_output,
-                ],
-            )
+        with gr.Tabs(selected="record"):
+            with gr.Tab("Record Text & Voice", id="record"):
+                with gr.Row():
+                    with gr.Column():
+                        note_input = gr.Textbox(
+                            label="Transaction note",
+                            placeholder="Sold 12 mangoes, 20 each",
+                            lines=4,
+                            elem_classes="vl-panel",
+                        )
+                        parse_button = gr.Button("Parse Text", variant="primary")
+                    with gr.Column():
+                        audio_input = gr.Audio(
+                            label="Record transaction",
+                            sources=["microphone"],
+                            type="filepath",
+                            elem_classes="vl-panel",
+                        )
+                        transcribe_button = gr.Button("Transcribe & Parse", variant="primary")
+                        transcript_output = gr.Textbox(
+                            label="Transcript",
+                            lines=3,
+                            interactive=False,
+                            elem_classes="vl-panel",
+                        )
 
-        with gr.Tab("Record"):
-            with gr.Row():
-                with gr.Column():
-                    note_input = gr.Textbox(
-                        label="Transaction note",
-                        placeholder="Sold 12 mangoes, 20 each",
-                        lines=4,
-                        elem_classes="vl-panel",
-                    )
-                    parse_button = gr.Button("Parse Text", variant="primary")
-                with gr.Column():
-                    audio_input = gr.Audio(
-                        label="Record transaction",
-                        sources=["microphone"],
-                        type="filepath",
-                        elem_classes="vl-panel",
-                    )
-                    transcribe_button = gr.Button("Transcribe & Parse", variant="primary")
-                    transcript_output = gr.Textbox(
-                        label="Transcript",
-                        lines=3,
+                with gr.Row():
+                    save_button = gr.Button("Save")
+
+                structured_output = gr.JSON(label="Structured output", elem_classes="vl-panel")
+                status_output = gr.Markdown(elem_classes="vl-status")
+
+                parse_button.click(
+                    fn=_parse_note,
+                    inputs=note_input,
+                    outputs=[structured_output, parsed_state, status_output],
+                )
+                transcribe_button.click(
+                    fn=_transcribe_and_parse_audio,
+                    inputs=audio_input,
+                    outputs=[transcript_output, structured_output, parsed_state, status_output],
+                )
+                save_button.click(
+                    fn=lambda transaction: _save_transaction(transaction, db_path),
+                    inputs=parsed_state,
+                    outputs=status_output,
+                )
+
+            with gr.Tab("Dashboard", id="dashboard"):
+                refresh_dashboard_button = gr.Button("Refresh Dashboard", variant="primary")
+                with gr.Row(elem_classes="vl-metric-grid"):
+                    total_sales_output = gr.HTML()
+                    total_expenses_output = gr.HTML()
+                    net_profit_output = gr.HTML()
+                    outstanding_credit_output = gr.HTML()
+                top_selling_item_output = gr.Textbox(label="Top Selling Item", interactive=False)
+                with gr.Row():
+                    top_items_output = gr.Dataframe(
+                        headers=["item", "quantity_sold", "sales_amount"],
+                        label="Top Selling Items",
                         interactive=False,
+                        wrap=True,
                         elem_classes="vl-panel",
                     )
+                    low_stock_output = gr.Dataframe(
+                        headers=["item", "current_stock"],
+                        label="Low Inventory Alerts",
+                        interactive=False,
+                        wrap=True,
+                        elem_classes="vl-panel",
+                    )
+                refresh_dashboard_button.click(
+                    fn=lambda: _get_dashboard_data(db_path),
+                    inputs=None,
+                    outputs=[
+                        total_sales_output,
+                        total_expenses_output,
+                        net_profit_output,
+                        outstanding_credit_output,
+                        top_selling_item_output,
+                        top_items_output,
+                        low_stock_output,
+                    ],
+                )
+                demo.load(
+                    fn=lambda: _get_dashboard_data(db_path),
+                    inputs=None,
+                    outputs=[
+                        total_sales_output,
+                        total_expenses_output,
+                        net_profit_output,
+                        outstanding_credit_output,
+                        top_selling_item_output,
+                        top_items_output,
+                        low_stock_output,
+                    ],
+                )
 
-            with gr.Row():
-                save_button = gr.Button("Save")
+            with gr.Tab("Bulk Import", id="bulk"):
+                bulk_notes_input = gr.Textbox(
+                    label="Paste transaction notes",
+                    placeholder="mango 12 x 20\nrent 300\nAmit owes 100\nRamesh paid 50",
+                    lines=8,
+                    elem_classes="vl-panel",
+                )
+                with gr.Row():
+                    bulk_parse_button = gr.Button("Parse Lines", variant="primary")
+                    bulk_save_button = gr.Button("Save All Transactions")
+                bulk_review_output = gr.Dataframe(
+                    headers=REVIEW_COLUMNS,
+                    label="Review and edit transactions",
+                    interactive=True,
+                    wrap=True,
+                    elem_classes="vl-panel",
+                )
+                bulk_status_output = gr.Markdown(elem_classes="vl-status")
+                bulk_parse_button.click(
+                    fn=_parse_bulk_notes_for_review,
+                    inputs=bulk_notes_input,
+                    outputs=[bulk_review_output, bulk_status_output],
+                )
+                bulk_save_button.click(
+                    fn=lambda review_table: _save_bulk_transactions(review_table, db_path),
+                    inputs=bulk_review_output,
+                    outputs=bulk_status_output,
+                )
 
-            structured_output = gr.JSON(label="Structured output", elem_classes="vl-panel")
-            status_output = gr.Markdown(elem_classes="vl-status")
+            with gr.Tab("Customer Credit", id="credit"):
+                refresh_customer_button = gr.Button("Refresh Customer Credit Book")
+                customer_balances_output = gr.Dataframe(
+                    headers=["customer", "outstanding_balance"],
+                    label="Customer balances",
+                    interactive=False,
+                    wrap=True,
+                    elem_classes="vl-panel",
+                )
+                refresh_customer_button.click(
+                    fn=lambda: get_customer_balances(db_path),
+                    inputs=None,
+                    outputs=customer_balances_output,
+                )
+                demo.load(
+                    fn=lambda: get_customer_balances(db_path),
+                    inputs=None,
+                    outputs=customer_balances_output,
+                )
 
-            parse_button.click(
-                fn=_parse_note,
-                inputs=note_input,
-                outputs=[structured_output, parsed_state, status_output],
-            )
-            transcribe_button.click(
-                fn=_transcribe_and_parse_audio,
-                inputs=audio_input,
-                outputs=[transcript_output, structured_output, parsed_state, status_output],
-            )
-            save_button.click(
-                fn=lambda transaction: _save_transaction(transaction, db_path),
-                inputs=parsed_state,
-                outputs=status_output,
-            )
+            with gr.Tab("Inventory", id="inventory"):
+                refresh_inventory_button = gr.Button("Refresh Inventory")
+                inventory_output = gr.Dataframe(
+                    headers=["item", "current_stock"],
+                    label="Current stock",
+                    interactive=False,
+                    wrap=True,
+                    elem_classes="vl-panel",
+                )
+                refresh_inventory_button.click(
+                    fn=lambda: _get_inventory_display(db_path),
+                    inputs=None,
+                    outputs=inventory_output,
+                )
+                demo.load(
+                    fn=lambda: _get_inventory_display(db_path),
+                    inputs=None,
+                    outputs=inventory_output,
+                )
 
-        with gr.Tab("Bulk Import"):
-            bulk_notes_input = gr.Textbox(
-                label="Paste transaction notes",
-                placeholder="mango 12 x 20\nrent 300\nAmit owes 100\nRamesh paid 50",
-                lines=8,
-                elem_classes="vl-panel",
-            )
-            with gr.Row():
-                bulk_parse_button = gr.Button("Parse Lines", variant="primary")
-                bulk_save_button = gr.Button("Save All Transactions")
-            bulk_review_output = gr.Dataframe(
-                headers=REVIEW_COLUMNS,
-                label="Review and edit transactions",
-                interactive=True,
-                wrap=True,
-                elem_classes="vl-panel",
-            )
-            bulk_status_output = gr.Markdown(elem_classes="vl-status")
-            bulk_parse_button.click(
-                fn=_parse_bulk_notes_for_review,
-                inputs=bulk_notes_input,
-                outputs=[bulk_review_output, bulk_status_output],
-            )
-            bulk_save_button.click(
-                fn=lambda review_table: _save_bulk_transactions(review_table, db_path),
-                inputs=bulk_review_output,
-                outputs=bulk_status_output,
-            )
+            with gr.Tab("Reports & PDF", id="reports"):
+                generate_report_button = gr.Button("Generate Daily Summary PDF", variant="primary")
+                report_status_output = gr.Markdown(elem_classes="vl-status")
+                report_file_output = gr.File(label="Daily Summary PDF", elem_classes="vl-panel")
+                generate_report_button.click(
+                    fn=lambda: _generate_daily_summary_report(db_path),
+                    inputs=None,
+                    outputs=[report_file_output, report_status_output],
+                )
+                gr.Markdown("### WhatsApp Summary")
+                generate_whatsapp_button = gr.Button("Generate WhatsApp Summary")
+                whatsapp_summary_output = gr.Textbox(
+                    label="WhatsApp Summary",
+                    lines=10,
+                    interactive=False,
+                    elem_classes="vl-panel",
+                    elem_id="whatsapp-summary-output",
+                )
+                gr.HTML(
+                    """
+                    <button class="vl-copy-button" type="button" onclick="
+                      const root = document.querySelector('#whatsapp-summary-output');
+                      const textArea = root ? root.querySelector('textarea') : null;
+                      if (textArea && navigator.clipboard) navigator.clipboard.writeText(textArea.value);
+                    ">Copy WhatsApp Summary</button>
+                    """
+                )
+                generate_whatsapp_button.click(
+                    fn=lambda: generate_whatsapp_summary(
+                        db_path=db_path,
+                        low_stock_threshold=LOW_STOCK_THRESHOLD,
+                    ),
+                    inputs=None,
+                    outputs=whatsapp_summary_output,
+                )
 
-        with gr.Tab("Customer Credit Book"):
-            refresh_customer_button = gr.Button("Refresh Customer Credit Book")
-            customer_balances_output = gr.Dataframe(
-                headers=["customer", "outstanding_balance"],
-                label="Customer balances",
-                interactive=False,
-                wrap=True,
-                elem_classes="vl-panel",
-            )
-            refresh_customer_button.click(
-                fn=lambda: get_customer_balances(db_path),
-                inputs=None,
-                outputs=customer_balances_output,
-            )
-            demo.load(
-                fn=lambda: get_customer_balances(db_path),
-                inputs=None,
-                outputs=customer_balances_output,
-            )
-
-        with gr.Tab("Inventory"):
-            refresh_inventory_button = gr.Button("Refresh Inventory")
-            inventory_output = gr.Dataframe(
-                headers=["item", "current_stock"],
-                label="Current stock",
-                interactive=False,
-                wrap=True,
-                elem_classes="vl-panel",
-            )
-            refresh_inventory_button.click(
-                fn=lambda: _get_inventory_display(db_path),
-                inputs=None,
-                outputs=inventory_output,
-            )
-            demo.load(
-                fn=lambda: _get_inventory_display(db_path),
-                inputs=None,
-                outputs=inventory_output,
-            )
-
-        with gr.Tab("Reports"):
-            generate_report_button = gr.Button("Generate Daily Summary PDF", variant="primary")
-            report_status_output = gr.Markdown(elem_classes="vl-status")
-            report_file_output = gr.File(label="Daily Summary PDF", elem_classes="vl-panel")
-            generate_report_button.click(
-                fn=lambda: _generate_daily_summary_report(db_path),
-                inputs=None,
-                outputs=[report_file_output, report_status_output],
-            )
-            gr.Markdown("### WhatsApp Summary")
-            generate_whatsapp_button = gr.Button("Generate WhatsApp Summary")
-            whatsapp_summary_output = gr.Textbox(
-                label="WhatsApp Summary",
-                lines=10,
-                interactive=False,
-                elem_classes="vl-panel",
-                elem_id="whatsapp-summary-output",
-            )
-            gr.HTML(
-                """
-                <button class="vl-copy-button" type="button" onclick="
-                  const root = document.querySelector('#whatsapp-summary-output');
-                  const textArea = root ? root.querySelector('textarea') : null;
-                  if (textArea && navigator.clipboard) navigator.clipboard.writeText(textArea.value);
-                ">Copy WhatsApp Summary</button>
-                """
-            )
-            generate_whatsapp_button.click(
-                fn=lambda: generate_whatsapp_summary(
-                    db_path=db_path,
-                    low_stock_threshold=LOW_STOCK_THRESHOLD,
-                ),
-                inputs=None,
-                outputs=whatsapp_summary_output,
-            )
-
-        with gr.Tab("Ledger"):
-            refresh_button = gr.Button("Refresh Ledger")
-            ledger_output = gr.Dataframe(
-                headers=[
-                    "id",
-                    "transaction_type",
-                    "item",
-                    "quantity",
-                    "unit_price",
-                    "amount",
-                    "customer",
-                    "payment_status",
-                    "notes",
-                    "confidence",
-                    "created_at",
-                ],
-                label="Saved transactions",
-                interactive=False,
-                wrap=True,
-                elem_classes="vl-panel",
-            )
-            refresh_button.click(
-                fn=lambda: get_transactions(db_path),
-                inputs=None,
-                outputs=ledger_output,
-            )
-            demo.load(
-                fn=lambda: get_transactions(db_path),
-                inputs=None,
-                outputs=ledger_output,
-            )
+            with gr.Tab("Ledger", id="ledger"):
+                refresh_button = gr.Button("Refresh Ledger")
+                ledger_output = gr.Dataframe(
+                    headers=[
+                        "id",
+                        "transaction_type",
+                        "item",
+                        "quantity",
+                        "unit_price",
+                        "amount",
+                        "customer",
+                        "payment_status",
+                        "notes",
+                        "confidence",
+                        "created_at",
+                    ],
+                    label="Saved transactions",
+                    interactive=False,
+                    wrap=True,
+                    elem_classes="vl-panel",
+                )
+                refresh_button.click(
+                    fn=lambda: get_transactions(db_path),
+                    inputs=None,
+                    outputs=ledger_output,
+                )
+                demo.load(
+                    fn=lambda: get_transactions(db_path),
+                    inputs=None,
+                    outputs=ledger_output,
+                )
 
     return demo
 
