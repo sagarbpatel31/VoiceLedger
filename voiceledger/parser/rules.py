@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 from decimal import Decimal, InvalidOperation
 
+from voiceledger.parser.base import Parser
 from voiceledger.parser.schema import Transaction
 
 
@@ -44,6 +45,14 @@ CUSTOMER_PAYMENT_PATTERN = re.compile(
     rf"(?P<amount>\d+(?:\.\d+)?)\b",
     re.IGNORECASE,
 )
+
+
+class RuleParser(Parser):
+    """Deterministic rule-based parser for simple bookkeeping notes."""
+
+    def parse(self, text: str) -> Transaction:
+        """Parse text into a structured transaction using local rules."""
+        return parse_transaction(text)
 
 
 def parse_transaction(note: str) -> Transaction:

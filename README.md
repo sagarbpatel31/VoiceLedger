@@ -69,3 +69,4 @@ pytest
 - Customer credit balances are updated when parsed customer credit or payment transactions are saved.
 - Inventory stock is updated when parsed inventory purchases or sales are saved.
 - PDF reports are generated with fpdf2 from the current SQLite ledger state.
+- Parser architecture supports rule-based and Hugging Face Inference API compatible LLM parsers, with rule fallback on LLM failure.
