@@ -26,7 +26,6 @@ from voiceledger.parser.schema import Transaction
 from voiceledger.reports.pdf_report import generate_daily_summary_pdf
 from voiceledger.reports.whatsapp_summary import generate_whatsapp_summary
 from voiceledger.speech.transcribe import TranscriptionError, transcribe_audio as local_transcribe_audio
-from voiceledger.ui.theme import APP_CSS, create_theme
 
 
 LOW_STOCK_THRESHOLD = 5
@@ -36,12 +35,7 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
     """Create and return the Gradio Blocks app."""
     initialize_database(db_path)
 
-    with gr.Blocks(
-        title="VoiceLedger",
-        theme=create_theme(),
-        css=APP_CSS,
-        elem_id="voiceledger-app",
-    ) as demo:
+    with gr.Blocks(title="VoiceLedger", elem_id="voiceledger-app") as demo:
         gr.HTML(
             """
             <section class="vl-hero">
@@ -62,13 +56,11 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                 outstanding_credit_output = gr.HTML()
             top_selling_item_output = gr.Textbox(label="Top Selling Item", interactive=False)
             with gr.Row():
-                top_items_plot = gr.BarPlot(
-                    x="item",
-                    y="quantity_sold",
-                    title="Top Selling Items",
-                    x_title="Item",
-                    y_title="Quantity Sold",
-                    vertical=False,
+                top_items_output = gr.Dataframe(
+                    headers=["item", "quantity_sold", "sales_amount"],
+                    label="Top Selling Items",
+                    interactive=False,
+                    wrap=True,
                     elem_classes="vl-panel",
                 )
                 low_stock_output = gr.Dataframe(
@@ -87,7 +79,7 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                     net_profit_output,
                     outstanding_credit_output,
                     top_selling_item_output,
-                    top_items_plot,
+                    top_items_output,
                     low_stock_output,
                 ],
             )
@@ -100,7 +92,7 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                     net_profit_output,
                     outstanding_credit_output,
                     top_selling_item_output,
-                    top_items_plot,
+                    top_items_output,
                     low_stock_output,
                 ],
             )
@@ -236,8 +228,17 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                 label="WhatsApp Summary",
                 lines=10,
                 interactive=False,
-                show_copy_button=True,
                 elem_classes="vl-panel",
+                elem_id="whatsapp-summary-output",
+            )
+            gr.HTML(
+                """
+                <button class="vl-copy-button" type="button" onclick="
+                  const root = document.querySelector('#whatsapp-summary-output');
+                  const textArea = root ? root.querySelector('textarea') : null;
+                  if (textArea && navigator.clipboard) navigator.clipboard.writeText(textArea.value);
+                ">Copy WhatsApp Summary</button>
+                """
             )
             generate_whatsapp_button.click(
                 fn=lambda: generate_whatsapp_summary(

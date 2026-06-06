@@ -142,6 +142,22 @@ body,
   border-color: var(--vl-accent-strong) !important;
 }
 
+.vl-copy-button {
+  background: var(--vl-text);
+  border: 1px solid var(--vl-text);
+  border-radius: 10px;
+  color: #ffffff;
+  cursor: pointer;
+  font-weight: 700;
+  margin-top: 8px;
+  min-height: 42px;
+  padding: 0 16px;
+}
+
+.vl-copy-button:hover {
+  background: #334033;
+}
+
 #voiceledger-app textarea,
 #voiceledger-app input,
 #voiceledger-app .wrap {
