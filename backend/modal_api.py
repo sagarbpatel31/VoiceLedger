@@ -19,15 +19,15 @@ REQUEST_TIMEOUT_SECONDS = 120
 
 
 def transcribe_audio(
-    audio_path: str | Path | None,
-    fallback: Callable[[str | Path | None], str],
+    audio_path: Any,
+    fallback: Callable[[Any], str],
 ) -> str:
     """Transcribe audio through Modal, falling back locally if unavailable."""
+    path = _coerce_audio_path(audio_path)
     endpoint_url = os.getenv(MODAL_TRANSCRIBE_URL_ENV)
-    if not endpoint_url or audio_path is None:
+    if not endpoint_url or path is None:
         return fallback(audio_path)
 
-    path = Path(audio_path)
     if not path.exists():
         return fallback(audio_path)
 
@@ -79,3 +79,22 @@ def _auth_headers() -> dict[str, str]:
     if not token:
         return {}
     return {"Authorization": f"Bearer {token}"}
+
+
+def _coerce_audio_path(audio_value: Any) -> Path | None:
+    """Extract a local audio filepath from Gradio audio values."""
+    if audio_value is None:
+        return None
+    if isinstance(audio_value, (str, Path)):
+        return Path(audio_value)
+    if isinstance(audio_value, dict):
+        for key in ("path", "name", "file", "filepath"):
+            value = audio_value.get(key)
+            if value:
+                return Path(value)
+    if isinstance(audio_value, (list, tuple)):
+        for value in audio_value:
+            path = _coerce_audio_path(value)
+            if path is not None:
+                return path
+    return None

@@ -6,8 +6,8 @@ from voiceledger.ui import gradio_app
 
 
 def test_transcribe_and_parse_audio_handles_transcription_error(monkeypatch) -> None:
-    def fail_transcription(_: str | None) -> str:
-        raise gradio_app.TranscriptionError("test failure")
+    def fail_transcription(_: object) -> str:
+        raise RuntimeError("test failure")
 
     monkeypatch.setattr(gradio_app.modal_api, "transcribe_audio", lambda audio, fallback: fail_transcription(audio))
 

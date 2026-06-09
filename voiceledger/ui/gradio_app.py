@@ -299,11 +299,11 @@ def _parse_note(note: str) -> tuple[dict[str, Any], dict[str, Any], str]:
     return payload, payload, status
 
 
-def _transcribe_and_parse_audio(audio_path: str | None) -> tuple[str, dict[str, Any], dict[str, Any] | None, str]:
+def _transcribe_and_parse_audio(audio_path: Any) -> tuple[str, dict[str, Any], dict[str, Any] | None, str]:
     """Transcribe recorded audio, parse the transcript, and return UI updates."""
     try:
         transcript = modal_api.transcribe_audio(audio_path, fallback=local_transcribe_audio)
-    except TranscriptionError as exc:
+    except Exception as exc:
         empty_payload = _empty_transaction_payload()
         return "", empty_payload, None, f"Transcription failed: {exc}"
 

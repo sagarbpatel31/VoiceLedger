@@ -82,6 +82,21 @@ def test_transcribe_audio_uses_modal_response(tmp_path: Path, monkeypatch) -> No
     assert transcript == "Sold 12 mangoes"
 
 
+def test_transcribe_audio_accepts_gradio_dict_payload(tmp_path: Path, monkeypatch) -> None:
+    audio_path = tmp_path / "audio.wav"
+    audio_path.write_bytes(b"audio")
+    monkeypatch.setenv(modal_api.MODAL_TRANSCRIBE_URL_ENV, "https://modal.example/transcribe")
+
+    def fake_post(*args, **kwargs) -> FakeResponse:
+        return FakeResponse({"transcript": "Paid 500 for supplies"})
+
+    monkeypatch.setattr(modal_api.requests, "post", fake_post)
+
+    transcript = modal_api.transcribe_audio({"path": str(audio_path)}, fallback=lambda _: "fallback")
+
+    assert transcript == "Paid 500 for supplies"
+
+
 def test_transcribe_audio_falls_back_when_url_missing(tmp_path: Path, monkeypatch) -> None:
     audio_path = tmp_path / "audio.wav"
     audio_path.write_bytes(b"audio")

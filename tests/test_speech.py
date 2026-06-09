@@ -15,3 +15,10 @@ def test_transcribe_audio_requires_existing_file(tmp_path: Path) -> None:
 
     with pytest.raises(TranscriptionError, match="does not exist"):
         transcribe_audio(missing_file)
+
+
+def test_transcribe_audio_accepts_gradio_dict_for_missing_file(tmp_path: Path) -> None:
+    missing_file = tmp_path / "missing.wav"
+
+    with pytest.raises(TranscriptionError, match="does not exist"):
+        transcribe_audio({"path": str(missing_file)})

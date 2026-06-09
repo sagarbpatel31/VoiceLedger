@@ -5,7 +5,7 @@ from __future__ import annotations
 from functools import lru_cache
 from pathlib import Path
 from collections.abc import Iterable
-from typing import Protocol
+from typing import Any, Protocol
 
 
 MODEL_SIZE = "small"
@@ -28,17 +28,17 @@ class TranscriptionError(RuntimeError):
     """Raised when audio transcription fails."""
 
 
-def transcribe_audio(audio_path: str | Path | None) -> str:
+def transcribe_audio(audio_path: Any) -> str:
     """Transcribe an audio file with the faster-whisper small model.
 
     The model is loaded lazily and cached after the first call. This keeps the
     Gradio app responsive at startup while still using the requested small
     open-source speech model for actual transcription.
     """
-    if audio_path is None:
+    path = _coerce_audio_path(audio_path)
+    if path is None:
         raise TranscriptionError("No audio file was provided.")
 
-    path = Path(audio_path)
     if not path.exists():
         raise TranscriptionError(f"Audio file does not exist: {path}")
 
@@ -60,6 +60,25 @@ def transcribe_audio(audio_path: str | Path | None) -> str:
         raise TranscriptionError("No speech was detected in the audio.")
 
     return transcript.strip()
+
+
+def _coerce_audio_path(audio_value: Any) -> Path | None:
+    """Extract a local audio filepath from Gradio audio values."""
+    if audio_value is None:
+        return None
+    if isinstance(audio_value, (str, Path)):
+        return Path(audio_value)
+    if isinstance(audio_value, dict):
+        for key in ("path", "name", "file", "filepath"):
+            value = audio_value.get(key)
+            if value:
+                return Path(value)
+    if isinstance(audio_value, (list, tuple)):
+        for value in audio_value:
+            path = _coerce_audio_path(value)
+            if path is not None:
+                return path
+    return None
 
 
 @lru_cache(maxsize=1)
