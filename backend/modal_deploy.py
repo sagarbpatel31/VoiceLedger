@@ -14,10 +14,10 @@ from pathlib import Path
 from typing import Any
 
 import modal
-from fastapi import Request
 
 
 NEMOTRON_MODEL = os.getenv("NEMOTRON_MODEL", "nvidia/NVIDIA-Nemotron-3-Nano-4B")
+DEPLOYMENT_VERSION = "parse-starlette-route-v1"
 
 image = (
     modal.Image.debian_slim(python_version="3.11")
@@ -44,6 +44,8 @@ app = modal.App("voiceledger-backend")
 def api():
     """Serve VoiceLedger Modal API routes."""
     from fastapi import FastAPI, File, HTTPException, UploadFile
+    from starlette.responses import JSONResponse
+    from starlette.routing import Route
 
     from voiceledger.parser.llm_parser import SYSTEM_PROMPT
     from voiceledger.parser.rules import parse_transaction as rule_parse_transaction
@@ -54,6 +56,10 @@ def api():
     @web_app.get("/health")
     def health() -> dict[str, str]:
         return {"status": "ok"}
+
+    @web_app.get("/version")
+    def version() -> dict[str, str]:
+        return {"version": DEPLOYMENT_VERSION}
 
     @web_app.post("/transcribe")
     async def transcribe(audio: UploadFile = File(...)) -> dict[str, str]:
@@ -82,11 +88,10 @@ def api():
             raise HTTPException(status_code=422, detail="No speech detected.")
         return {"transcript": transcript.strip()}
 
-    @web_app.post("/parse")
-    async def parse(request: Request) -> dict[str, Any]:
+    async def parse(request) -> JSONResponse:
         text = await _extract_parse_text(request)
         if not text:
-            return {"transaction": Transaction(notes="", confidence=0.0).model_dump()}
+            return JSONResponse({"transaction": Transaction(notes="", confidence=0.0).model_dump()})
 
         try:
             generated_text = _generate_nemotron_json(text, SYSTEM_PROMPT)
@@ -97,7 +102,9 @@ def api():
         except Exception:
             transaction = rule_parse_transaction(text)
 
-        return {"transaction": transaction.model_dump()}
+        return JSONResponse({"transaction": transaction.model_dump()})
+
+    web_app.router.routes.append(Route("/parse", parse, methods=["POST"]))
 
     return web_app
 
