@@ -28,8 +28,12 @@ The current version focuses on a clean, deterministic foundation:
 - Download a Daily Summary PDF report.
 - Generate a WhatsApp-ready daily business summary.
 - Offload speech transcription and LLM parsing to optional Modal endpoints.
+- Edit or delete saved transactions while keeping customer credit and inventory balances consistent.
+- Export the ledger as CSV for spreadsheet sharing.
 
 When Modal endpoints are configured, parsing runs through the Modal backend using `nvidia/NVIDIA-Nemotron-3-Nano-4B` via Hugging Face Inference. If Modal is unavailable or returns an invalid response, VoiceLedger falls back to the local rule parser for demo reliability.
+
+VoiceLedger is designed for the Build Small Hackathon Backyard AI track: a concrete, real-world bookkeeping problem for informal sellers and home businesses. The demo story is anonymized around a local seller who tracks sales, customer dues, stock, and daily profit from short voice notes.
 
 ## Example Inputs
 
@@ -55,6 +59,16 @@ The same examples are available in `sample_data/demo_transactions.txt`.
 | `Bought 50 mangoes` | Inventory purchase, quantity `50`, item `mangoes` |
 | `Amit owes 100` | Customer credit, customer `Amit`, amount `100` |
 | `Amit paid 50` | Customer payment, customer `Amit`, amount `50` |
+
+## Demo Script
+
+1. Open the `Submission Story` tab and seed demo transactions.
+2. Go to `Record Text & Voice`, speak or type `Sold 12 mangoes, 20 each`, parse it, and save it.
+3. Show the parse status: Modal/NVIDIA Nemotron when available, local fallback when needed.
+4. Open `Dashboard`, `Customer Credit`, and `Inventory` to show automatic bookkeeping updates.
+5. Open `Ledger`, load a transaction by id, update or delete it, then show refreshed balances.
+6. Download CSV from `Ledger`, generate the PDF and WhatsApp summary from `Reports & PDF`.
+7. Open `Demo Health` to show Modal health, deployed backend version, database, PDF, and endpoint checks.
 
 ## Repository Structure
 
@@ -121,4 +135,6 @@ curl -X POST https://sagarpat3199--voiceledger-api.modal.run/parse \
 - Modal integration lives in `backend/`; if endpoint URLs are not configured, local fallback stays active.
 - NVIDIA Nemotron 3 Nano 4B is used by the Modal parser endpoint and is also available as a local `transformers` parser provider for strict JSON transaction extraction.
 - The Demo Health tab checks Modal reachability, deployed backend version, SQLite availability, PDF support, and configured endpoint status.
+- Ledger edits and deletes rebuild customer balances and inventory from saved transactions to avoid stale side effects.
+- CSV export downloads all ledger rows in the same column order as the app table.
 - The UI uses a custom theme, responsive spacing, and dashboard cards instead of the default Gradio look.

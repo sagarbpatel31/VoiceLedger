@@ -26,7 +26,15 @@ from voiceledger.ledger.analytics import (
     top_selling_items,
 )
 from voiceledger.ledger.customers import get_customer_balances
-from voiceledger.ledger.database import add_transaction, get_transactions, initialize_database
+from voiceledger.ledger.database import (
+    add_transaction,
+    delete_transaction,
+    export_transactions_csv,
+    get_transaction,
+    get_transactions,
+    initialize_database,
+    update_transaction,
+)
 from voiceledger.ledger.inventory import get_inventory
 from voiceledger.parser.bulk import REVIEW_COLUMNS, parse_bulk_notes, review_table_to_transactions
 from voiceledger.parser.rules import parse_transaction as local_parse_transaction
@@ -37,6 +45,25 @@ from voiceledger.speech.transcribe import TranscriptionError, transcribe_audio a
 
 
 LOW_STOCK_THRESHOLD = 5
+TRANSACTION_TYPE_CHOICES = [
+    "sale",
+    "expense",
+    "inventory_purchase",
+    "customer_credit",
+    "customer_payment",
+    "unknown",
+]
+PAYMENT_STATUS_CHOICES = ["paid", "unpaid", "credit", "unknown"]
+DEMO_NOTES = [
+    "Bought 60 mangoes",
+    "Sold 12 mangoes, 20 each",
+    "Sold 8 mangoes, 20 each",
+    "Paid 500 for supplies",
+    "Amit owes 100",
+    "Amit paid 40",
+    "Bought 30 onions",
+    "rent 300",
+]
 
 
 def create_app(db_path: str | Path | None = None) -> gr.Blocks:
@@ -191,6 +218,25 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                     outputs=[health_output, health_status_output],
                 )
 
+            with gr.Tab("Submission Story", id="story"):
+                gr.Markdown(
+                    """
+                    ### Built for a real informal seller
+
+                    VoiceLedger is built for a local informal seller who tracks sales, customer dues,
+                    stock, and daily profit from short voice notes instead of spreadsheets.
+
+                    **Small-model fit:** NVIDIA Nemotron handles messy transaction language through Modal,
+                    while deterministic rules keep the bookkeeping path reliable when the model is unavailable.
+
+                    **Demo path:** seed demo data, record or type a transaction, save it, then inspect the
+                    dashboard, ledger, credit book, inventory, PDF report, WhatsApp summary, and CSV export.
+                    """,
+                    elem_classes="vl-status",
+                )
+                seed_demo_button = gr.Button("Seed Demo Transactions", variant="primary")
+                seed_demo_status = gr.Markdown(elem_classes="vl-status")
+
             with gr.Tab("Bulk Import", id="bulk"):
                 gr.Markdown(
                     "Paste one transaction per line. Demo examples are in `sample_data/demo_transactions.txt`.",
@@ -301,7 +347,11 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                 )
 
             with gr.Tab("Ledger", id="ledger"):
-                refresh_button = gr.Button("Refresh Ledger")
+                with gr.Row():
+                    refresh_button = gr.Button("Refresh Ledger")
+                    export_csv_button = gr.Button("Download CSV")
+                export_status_output = gr.Markdown(elem_classes="vl-status")
+                csv_file_output = gr.File(label="Transactions CSV", elem_classes="vl-panel")
                 ledger_output = gr.Dataframe(
                     headers=[
                         "id",
@@ -331,12 +381,135 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                     inputs=None,
                     outputs=ledger_output,
                 )
+                gr.Markdown("### Edit or Delete Transaction")
+                with gr.Row():
+                    edit_transaction_id = gr.Number(label="Transaction ID", precision=0)
+                    load_transaction_button = gr.Button("Load transaction")
+                with gr.Row():
+                    edit_transaction_type = gr.Dropdown(
+                        choices=TRANSACTION_TYPE_CHOICES,
+                        label="Transaction type",
+                        value="unknown",
+                    )
+                    edit_payment_status = gr.Dropdown(
+                        choices=PAYMENT_STATUS_CHOICES,
+                        label="Payment status",
+                        value="unknown",
+                    )
+                with gr.Row():
+                    edit_item = gr.Textbox(label="Item")
+                    edit_customer = gr.Textbox(label="Customer")
+                with gr.Row():
+                    edit_quantity = gr.Number(label="Quantity")
+                    edit_unit_price = gr.Number(label="Unit price")
+                    edit_amount = gr.Number(label="Amount")
+                    edit_confidence = gr.Number(label="Confidence")
+                edit_notes = gr.Textbox(label="Notes", lines=3)
+                with gr.Row():
+                    update_transaction_button = gr.Button("Update transaction", variant="primary")
+                    delete_transaction_button = gr.Button("Delete transaction")
+                edit_status_output = gr.Markdown(elem_classes="vl-status")
+                load_transaction_button.click(
+                    fn=lambda transaction_id: _load_transaction_for_edit(transaction_id, db_path),
+                    inputs=edit_transaction_id,
+                    outputs=[
+                        edit_transaction_type,
+                        edit_item,
+                        edit_quantity,
+                        edit_unit_price,
+                        edit_amount,
+                        edit_customer,
+                        edit_payment_status,
+                        edit_notes,
+                        edit_confidence,
+                        edit_status_output,
+                    ],
+                )
+                export_csv_button.click(
+                    fn=lambda: _export_ledger_csv(db_path),
+                    inputs=None,
+                    outputs=[csv_file_output, export_status_output],
+                )
 
         save_button.click(
             fn=lambda transaction: _save_transaction_and_refresh(transaction, db_path),
             inputs=parsed_state,
             outputs=[
                 status_output,
+                total_sales_output,
+                total_expenses_output,
+                net_profit_output,
+                outstanding_credit_output,
+                top_selling_item_output,
+                top_items_output,
+                low_stock_output,
+                ledger_output,
+                customer_balances_output,
+                inventory_output,
+            ],
+        )
+        update_transaction_button.click(
+            fn=lambda transaction_id, transaction_type, item, quantity, unit_price, amount, customer, payment_status, notes, confidence: _update_transaction_and_refresh(
+                transaction_id,
+                transaction_type,
+                item,
+                quantity,
+                unit_price,
+                amount,
+                customer,
+                payment_status,
+                notes,
+                confidence,
+                db_path,
+            ),
+            inputs=[
+                edit_transaction_id,
+                edit_transaction_type,
+                edit_item,
+                edit_quantity,
+                edit_unit_price,
+                edit_amount,
+                edit_customer,
+                edit_payment_status,
+                edit_notes,
+                edit_confidence,
+            ],
+            outputs=[
+                edit_status_output,
+                total_sales_output,
+                total_expenses_output,
+                net_profit_output,
+                outstanding_credit_output,
+                top_selling_item_output,
+                top_items_output,
+                low_stock_output,
+                ledger_output,
+                customer_balances_output,
+                inventory_output,
+            ],
+        )
+        delete_transaction_button.click(
+            fn=lambda transaction_id: _delete_transaction_and_refresh(transaction_id, db_path),
+            inputs=edit_transaction_id,
+            outputs=[
+                edit_status_output,
+                total_sales_output,
+                total_expenses_output,
+                net_profit_output,
+                outstanding_credit_output,
+                top_selling_item_output,
+                top_items_output,
+                low_stock_output,
+                ledger_output,
+                customer_balances_output,
+                inventory_output,
+            ],
+        )
+        seed_demo_button.click(
+            fn=lambda: _seed_demo_transactions_and_refresh(db_path),
+            inputs=None,
+            outputs=[
+                seed_demo_status,
                 total_sales_output,
                 total_expenses_output,
                 net_profit_output,
@@ -398,8 +571,134 @@ def _save_transaction_and_refresh(
 ) -> tuple[str, str, str, str, str, str, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.io.formats.style.Styler]:
     """Save a transaction and refresh the demo-critical data views."""
     status = _save_transaction(transaction_payload, db_path)
+    return (status, *_refresh_core_views(db_path))
+
+
+def _load_transaction_for_edit(
+    transaction_id: float | int | None,
+    db_path: str | Path | None,
+) -> tuple[str, str | None, float | None, float | None, float | None, str | None, str, str, float, str]:
+    """Load a transaction into editable UI fields."""
+    parsed_id = _coerce_transaction_id(transaction_id)
+    if parsed_id is None:
+        return (
+            "unknown",
+            None,
+            None,
+            None,
+            None,
+            None,
+            "unknown",
+            "",
+            0.0,
+            "Enter a transaction id to load.",
+        )
+
+    transaction = get_transaction(parsed_id, db_path)
+    if transaction is None:
+        return (
+            "unknown",
+            None,
+            None,
+            None,
+            None,
+            None,
+            "unknown",
+            "",
+            0.0,
+            f"Transaction #{parsed_id} was not found.",
+        )
+
     return (
-        status,
+        transaction.transaction_type,
+        transaction.item,
+        transaction.quantity,
+        transaction.unit_price,
+        transaction.amount,
+        transaction.customer,
+        transaction.payment_status,
+        transaction.notes,
+        transaction.confidence,
+        f"Loaded transaction #{parsed_id}.",
+    )
+
+
+def _update_transaction_and_refresh(
+    transaction_id: float | int | None,
+    transaction_type: str,
+    item: str | None,
+    quantity: float | None,
+    unit_price: float | None,
+    amount: float | None,
+    customer: str | None,
+    payment_status: str,
+    notes: str | None,
+    confidence: float | None,
+    db_path: str | Path | None,
+) -> tuple[str, str, str, str, str, str, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.io.formats.style.Styler]:
+    """Update a transaction and refresh all dependent views."""
+    parsed_id = _coerce_transaction_id(transaction_id)
+    if parsed_id is None:
+        return ("Enter a transaction id before updating.", *_refresh_core_views(db_path))
+
+    try:
+        transaction = _transaction_from_edit_fields(
+            transaction_type=transaction_type,
+            item=item,
+            quantity=quantity,
+            unit_price=unit_price,
+            amount=amount,
+            customer=customer,
+            payment_status=payment_status,
+            notes=notes,
+            confidence=confidence,
+        )
+    except Exception as exc:
+        return (f"Could not update transaction: {exc}", *_refresh_core_views(db_path))
+
+    updated = update_transaction(parsed_id, transaction, db_path)
+    if not updated:
+        return (f"Transaction #{parsed_id} was not found.", *_refresh_core_views(db_path))
+    return (f"Updated transaction #{parsed_id}: {_transaction_summary(transaction)}.", *_refresh_core_views(db_path))
+
+
+def _delete_transaction_and_refresh(
+    transaction_id: float | int | None,
+    db_path: str | Path | None,
+) -> tuple[str, str, str, str, str, str, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.io.formats.style.Styler]:
+    """Delete a transaction and refresh all dependent views."""
+    parsed_id = _coerce_transaction_id(transaction_id)
+    if parsed_id is None:
+        return ("Enter a transaction id before deleting.", *_refresh_core_views(db_path))
+
+    deleted = delete_transaction(parsed_id, db_path)
+    if not deleted:
+        return (f"Transaction #{parsed_id} was not found.", *_refresh_core_views(db_path))
+    return (f"Deleted transaction #{parsed_id} and refreshed balances.", *_refresh_core_views(db_path))
+
+
+def _export_ledger_csv(db_path: str | Path | None) -> tuple[str, str]:
+    """Export ledger transactions to CSV for Gradio download."""
+    export_path = export_transactions_csv(db_path)
+    return str(export_path), "Transactions CSV is ready."
+
+
+def _seed_demo_transactions_and_refresh(
+    db_path: str | Path | None,
+) -> tuple[str, str, str, str, str, str, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.io.formats.style.Styler]:
+    """Seed realistic demo transactions and refresh all dependent views."""
+    saved_ids = [add_transaction(local_parse_transaction(note), db_path) for note in DEMO_NOTES]
+    return (
+        f"Seeded {len(saved_ids)} demo transactions. Last transaction id: #{saved_ids[-1]}.",
+        *_refresh_core_views(db_path),
+    )
+
+
+def _refresh_core_views(
+    db_path: str | Path | None,
+) -> tuple[str, str, str, str, str, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.io.formats.style.Styler]:
+    """Return dashboard, ledger, customer, and inventory refresh values."""
+    return (
         *_get_dashboard_data(db_path),
         get_transactions(db_path),
         get_customer_balances(db_path),
@@ -608,3 +907,56 @@ def _transaction_summary(transaction: Transaction) -> str:
     amount = _format_money(transaction.amount or 0) if transaction.amount is not None else "amount not set"
     target = transaction.item or transaction.customer or "transaction"
     return f"{transaction.transaction_type} for {target}, {amount}"
+
+
+def _coerce_transaction_id(value: float | int | None) -> int | None:
+    """Coerce a Gradio number value into a transaction id."""
+    if value is None:
+        return None
+    try:
+        transaction_id = int(value)
+    except (TypeError, ValueError):
+        return None
+    if transaction_id <= 0:
+        return None
+    return transaction_id
+
+
+def _transaction_from_edit_fields(
+    transaction_type: str,
+    item: str | None,
+    quantity: float | None,
+    unit_price: float | None,
+    amount: float | None,
+    customer: str | None,
+    payment_status: str,
+    notes: str | None,
+    confidence: float | None,
+) -> Transaction:
+    """Build a Transaction from ledger edit form values."""
+    return Transaction(
+        transaction_type=transaction_type or "unknown",
+        item=_clean_optional_text(item),
+        quantity=_clean_optional_float(quantity),
+        unit_price=_clean_optional_float(unit_price),
+        amount=_clean_optional_float(amount),
+        customer=_clean_optional_text(customer),
+        payment_status=payment_status or "unknown",
+        notes=(notes or "").strip(),
+        confidence=0.0 if confidence is None else float(confidence),
+    )
+
+
+def _clean_optional_text(value: str | None) -> str | None:
+    """Normalize optional text fields from Gradio inputs."""
+    if value is None:
+        return None
+    text = str(value).strip()
+    return text or None
+
+
+def _clean_optional_float(value: float | int | None) -> float | None:
+    """Normalize optional numeric fields from Gradio inputs."""
+    if value is None:
+        return None
+    return float(value)

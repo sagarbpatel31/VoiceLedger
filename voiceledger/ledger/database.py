@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import sqlite3
+import tempfile
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -129,6 +130,144 @@ def get_transactions(db_path: str | Path | None = None) -> pd.DataFrame:
 
     records: list[dict[str, Any]] = [dict(zip(COLUMNS, row, strict=True)) for row in rows]
     return pd.DataFrame.from_records(records, columns=COLUMNS)
+
+
+def get_transaction(transaction_id: int, db_path: str | Path | None = None) -> Transaction | None:
+    """Return one transaction by id, or None when it does not exist."""
+    path = initialize_database(db_path)
+
+    with sqlite3.connect(path) as connection:
+        row = connection.execute(
+            """
+            SELECT
+                transaction_type,
+                item,
+                quantity,
+                unit_price,
+                amount,
+                customer,
+                payment_status,
+                notes,
+                confidence
+            FROM transactions
+            WHERE id = ?
+            """,
+            (int(transaction_id),),
+        ).fetchone()
+
+    if row is None:
+        return None
+
+    payload = dict(zip(COLUMNS[1:-1], row, strict=True))
+    return Transaction.model_validate(payload)
+
+
+def update_transaction(
+    transaction_id: int,
+    transaction: Transaction,
+    db_path: str | Path | None = None,
+) -> bool:
+    """Update a transaction and rebuild derived balances when found."""
+    path = initialize_database(db_path)
+    payload = transaction.model_dump()
+
+    with sqlite3.connect(path) as connection:
+        cursor = connection.execute(
+            """
+            UPDATE transactions
+            SET
+                transaction_type = ?,
+                item = ?,
+                quantity = ?,
+                unit_price = ?,
+                amount = ?,
+                customer = ?,
+                payment_status = ?,
+                notes = ?,
+                confidence = ?
+            WHERE id = ?
+            """,
+            (
+                payload["transaction_type"],
+                payload["item"],
+                payload["quantity"],
+                payload["unit_price"],
+                payload["amount"],
+                payload["customer"],
+                payload["payment_status"],
+                payload["notes"],
+                payload["confidence"],
+                int(transaction_id),
+            ),
+        )
+        connection.commit()
+        updated = cursor.rowcount > 0
+
+    if updated:
+        rebuild_derived_tables(path)
+    return updated
+
+
+def delete_transaction(transaction_id: int, db_path: str | Path | None = None) -> bool:
+    """Delete a transaction and rebuild derived balances when found."""
+    path = initialize_database(db_path)
+
+    with sqlite3.connect(path) as connection:
+        cursor = connection.execute(
+            "DELETE FROM transactions WHERE id = ?",
+            (int(transaction_id),),
+        )
+        connection.commit()
+        deleted = cursor.rowcount > 0
+
+    if deleted:
+        rebuild_derived_tables(path)
+    return deleted
+
+
+def export_transactions_csv(
+    db_path: str | Path | None = None,
+    export_path: str | Path | None = None,
+) -> Path:
+    """Export all transactions to a CSV file and return the file path."""
+    ledger = get_transactions(db_path)
+    if export_path is None:
+        export_path = Path(tempfile.gettempdir()) / "voiceledger_transactions.csv"
+    path = Path(export_path).expanduser()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    ledger.to_csv(path, index=False, columns=COLUMNS)
+    return path
+
+
+def rebuild_derived_tables(db_path: str | Path | None = None) -> None:
+    """Rebuild customer balances and inventory from saved transactions."""
+    path = initialize_database(db_path)
+
+    with sqlite3.connect(path) as connection:
+        connection.execute("DELETE FROM customers")
+        connection.execute("DELETE FROM inventory")
+        rows = connection.execute(
+            """
+            SELECT
+                transaction_type,
+                item,
+                quantity,
+                unit_price,
+                amount,
+                customer,
+                payment_status,
+                notes,
+                confidence
+            FROM transactions
+            ORDER BY id ASC
+            """
+        ).fetchall()
+        connection.commit()
+
+    for row in rows:
+        transaction = Transaction.model_validate(dict(zip(COLUMNS[1:-1], row, strict=True)))
+        _apply_customer_balance_update(transaction, path)
+        _apply_inventory_update(transaction, path)
 
 
 def _resolve_db_path(db_path: str | Path | None) -> Path:
