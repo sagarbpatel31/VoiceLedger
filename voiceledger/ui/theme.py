@@ -28,10 +28,17 @@ body,
 }
 
 #voiceledger-app,
-#voiceledger-app * {
+#voiceledger-app *,
+#voiceledger-app .svelte-1ipelgc,
+#voiceledger-app .svelte-1ipelgc *,
+#voiceledger-app .prose,
+#voiceledger-app .prose * {
   color: var(--vl-text) !important;
 }
 
+#voiceledger-app [disabled],
+#voiceledger-app [aria-disabled="true"],
+#voiceledger-app .disabled,
 #voiceledger-app .generating,
 #voiceledger-app .generating *,
 #voiceledger-app .pending,
@@ -43,7 +50,11 @@ body,
 #voiceledger-app .block,
 #voiceledger-app .block *,
 #voiceledger-app .form,
-#voiceledger-app .form * {
+#voiceledger-app .form *,
+#voiceledger-app .output-class,
+#voiceledger-app .output-class *,
+#voiceledger-app .empty,
+#voiceledger-app .empty * {
   opacity: 1 !important;
 }
 
@@ -128,6 +139,56 @@ body,
   margin-bottom: 4px !important;
 }
 
+.vl-info-panel {
+  background: #ffffff !important;
+  border: 1px solid var(--vl-border) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 8px 20px rgba(31, 42, 31, 0.04) !important;
+  color: var(--vl-text) !important;
+  margin: 0 !important;
+  opacity: 1 !important;
+  padding: 12px 14px !important;
+}
+
+.vl-info-panel,
+.vl-info-panel * {
+  color: var(--vl-text) !important;
+  opacity: 1 !important;
+}
+
+.vl-info-panel h2,
+.vl-section-heading {
+  color: var(--vl-text) !important;
+  font-size: 18px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0 !important;
+  line-height: 1.25 !important;
+  margin: 0 0 4px !important;
+}
+
+.vl-info-panel p {
+  color: var(--vl-text) !important;
+  font-size: 15px !important;
+  line-height: 1.45 !important;
+  margin: 4px 0 !important;
+}
+
+.vl-chip {
+  background: #2c2926 !important;
+  border-radius: 6px !important;
+  color: #ffffff !important;
+  display: inline-block !important;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+  font-size: 13px !important;
+  margin: 2px 4px 2px 0 !important;
+  padding: 3px 7px !important;
+  white-space: nowrap !important;
+}
+
+.vl-section-heading {
+  margin-top: 10px !important;
+}
+
 .vl-muted,
 .vl-muted p {
   color: var(--vl-muted) !important;
@@ -142,6 +203,11 @@ body,
   min-height: 112px;
   opacity: 1 !important;
   padding: 16px;
+}
+
+.vl-metric-card,
+.vl-metric-card * {
+  opacity: 1 !important;
 }
 
 .vl-metric-label {
@@ -237,8 +303,7 @@ body,
 
 #voiceledger-app textarea,
 #voiceledger-app input,
-#voiceledger-app select,
-#voiceledger-app .wrap {
+#voiceledger-app select {
   border-radius: 12px !important;
   color: var(--vl-text) !important;
 }
@@ -248,6 +313,25 @@ body,
 #voiceledger-app select {
   background: #ffffff !important;
   border-color: var(--vl-border) !important;
+}
+
+#voiceledger-app .wrap {
+  border-radius: 12px !important;
+  color: var(--vl-text) !important;
+}
+
+#voiceledger-app .wrap,
+#voiceledger-app .wrap *,
+#voiceledger-app .label-wrap,
+#voiceledger-app .label-wrap *,
+#voiceledger-app label,
+#voiceledger-app label *,
+#voiceledger-app legend,
+#voiceledger-app legend *,
+#voiceledger-app .block-label,
+#voiceledger-app .block-label * {
+  color: var(--vl-text) !important;
+  opacity: 1 !important;
 }
 
 #voiceledger-app textarea::placeholder,
@@ -308,6 +392,7 @@ body,
 
 #voiceledger-app table *,
 #voiceledger-app td *,
+#voiceledger-app th *,
 #voiceledger-app .dataframe td *,
 #voiceledger-app [data-testid="dataframe"] td * {
   opacity: 1 !important;
@@ -329,6 +414,7 @@ body,
 #voiceledger-app [data-testid="dataframe"],
 #voiceledger-app [data-testid="dataframe"] * {
   color: var(--vl-text) !important;
+  opacity: 1 !important;
 }
 
 #voiceledger-app [data-testid="dataframe"] th,
@@ -352,6 +438,7 @@ body,
 .vl-status span {
   color: var(--vl-text) !important;
   margin: 0 !important;
+  opacity: 1 !important;
 }
 
 .vl-status {

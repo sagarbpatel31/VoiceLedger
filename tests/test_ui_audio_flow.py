@@ -68,3 +68,14 @@ def test_parse_note_surfaces_modal_source(monkeypatch) -> None:
     assert structured["transaction_type"] == "expense"
     assert state == structured
     assert "NVIDIA Nemotron" in status
+
+
+def test_high_contrast_demo_panels_are_rendered() -> None:
+    panel = gradio_app._info_panel(
+        "Demo Health",
+        "The Space calls Modal first for speech and NVIDIA Nemotron parsing, with local fallback for reliability.",
+    )
+
+    assert "vl-info-panel" in panel
+    assert "Demo Health" in panel
+    assert "NVIDIA Nemotron" in panel

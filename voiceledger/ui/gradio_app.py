@@ -84,13 +84,11 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
 
         with gr.Tabs(selected="record"):
             with gr.Tab("Record Text & Voice", id="record"):
-                gr.Markdown(
-                    """
-                    ### Hackathon Demo Launchpad
-
-                    Use these controls first if the tab bar is collapsed on your screen.
-                    """,
-                    elem_classes="vl-status",
+                gr.HTML(
+                    _info_panel(
+                        "Hackathon Demo Launchpad",
+                        "Use these controls first if the tab bar is collapsed on your screen.",
+                    )
                 )
                 with gr.Row():
                     record_seed_demo_button = gr.Button("Seed Demo Transactions", variant="primary")
@@ -103,16 +101,24 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                     wrap=True,
                     elem_classes="vl-panel",
                 )
-                gr.Markdown(
-                    "**Workflow:** Record or type → Parse → Review → Save",
-                    elem_classes="vl-status",
+                gr.HTML(
+                    _info_panel(
+                        "Workflow",
+                        "Record or type -> Parse -> Review -> Save",
+                    )
                 )
-                gr.Markdown(
+                gr.HTML(
                     """
-                    **Example inputs:** `Sold 12 mangoes, 20 each` · `Paid 500 for supplies` ·
-                    `Amit owes 100` · `Bought 50 mangoes`
-                    """,
-                    elem_classes="vl-status",
+                    <section class="vl-info-panel">
+                      <h2>Example inputs</h2>
+                      <p>
+                        <span class="vl-chip">Sold 12 mangoes, 20 each</span>
+                        <span class="vl-chip">Paid 500 for supplies</span>
+                        <span class="vl-chip">Amit owes 100</span>
+                        <span class="vl-chip">Bought 50 mangoes</span>
+                      </p>
+                    </section>
+                    """
                 )
                 with gr.Row(elem_classes="vl-example-row"):
                     example_sale_button = gr.Button("Try sale")
@@ -217,6 +223,12 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                 )
 
             with gr.Tab("Demo Health", id="health"):
+                gr.HTML(
+                    _info_panel(
+                        "Demo Health",
+                        "The Space calls Modal first for speech and NVIDIA Nemotron parsing, with local fallback for reliability.",
+                    )
+                )
                 refresh_health_button = gr.Button("Refresh Demo Health", variant="primary")
                 health_output = gr.Dataframe(
                     headers=["check", "status", "details"],
@@ -238,28 +250,25 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                 )
 
             with gr.Tab("Submission Story", id="story"):
-                gr.Markdown(
+                gr.HTML(
                     """
-                    ### Built for a real informal seller
-
-                    VoiceLedger is built for a local informal seller who tracks sales, customer dues,
-                    stock, and daily profit from short voice notes instead of spreadsheets.
-
-                    **Small-model fit:** NVIDIA Nemotron handles messy transaction language through Modal,
-                    while deterministic rules keep the bookkeeping path reliable when the model is unavailable.
-
-                    **Demo path:** seed demo data, record or type a transaction, save it, then inspect the
-                    dashboard, ledger, credit book, inventory, PDF report, WhatsApp summary, and CSV export.
-                    """,
-                    elem_classes="vl-status",
+                    <section class="vl-info-panel">
+                      <h2>Built for a real informal seller</h2>
+                      <p>VoiceLedger is built for a local informal seller who tracks sales, customer dues, stock, and daily profit from short voice notes instead of spreadsheets.</p>
+                      <p><strong>Small-model fit:</strong> NVIDIA Nemotron handles messy transaction language through Modal, while deterministic rules keep the bookkeeping path reliable when the model is unavailable.</p>
+                      <p><strong>Demo path:</strong> seed demo data, record or type a transaction, save it, then inspect the dashboard, ledger, credit book, inventory, PDF report, WhatsApp summary, and CSV export.</p>
+                    </section>
+                    """
                 )
                 seed_demo_button = gr.Button("Seed Demo Transactions", variant="primary")
                 seed_demo_status = gr.Markdown(elem_classes="vl-status")
 
             with gr.Tab("Bulk Import", id="bulk"):
-                gr.Markdown(
-                    "Paste one transaction per line. Demo examples are in `sample_data/demo_transactions.txt`.",
-                    elem_classes="vl-status",
+                gr.HTML(
+                    _info_panel(
+                        "Bulk Notes Import",
+                        "Paste one transaction per line. Demo examples are in sample_data/demo_transactions.txt.",
+                    )
                 )
                 bulk_notes_input = gr.Textbox(
                     label="Paste transaction notes",
@@ -290,6 +299,12 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                 )
 
             with gr.Tab("Customer Credit", id="credit"):
+                gr.HTML(
+                    _info_panel(
+                        "Customer Credit Book",
+                        "Track outstanding balances from customer credit and payment transactions.",
+                    )
+                )
                 refresh_customer_button = gr.Button("Refresh Customer Credit Book")
                 customer_balances_output = gr.Dataframe(
                     headers=["customer", "outstanding_balance"],
@@ -310,6 +325,12 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                 )
 
             with gr.Tab("Inventory", id="inventory"):
+                gr.HTML(
+                    _info_panel(
+                        "Inventory",
+                        "Track stock from inventory purchases and sales. Low-stock rows are highlighted.",
+                    )
+                )
                 refresh_inventory_button = gr.Button("Refresh Inventory")
                 inventory_output = gr.Dataframe(
                     headers=["item", "current_stock"],
@@ -330,6 +351,12 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                 )
 
             with gr.Tab("Reports & PDF", id="reports"):
+                gr.HTML(
+                    _info_panel(
+                        "Reports & PDF",
+                        "Generate a daily PDF report and a short WhatsApp-ready business summary.",
+                    )
+                )
                 generate_report_button = gr.Button("Generate Daily Summary PDF", variant="primary")
                 report_status_output = gr.Markdown(elem_classes="vl-status")
                 report_file_output = gr.File(label="Daily Summary PDF", elem_classes="vl-panel")
@@ -338,7 +365,7 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                     inputs=None,
                     outputs=[report_file_output, report_status_output],
                 )
-                gr.Markdown("### WhatsApp Summary")
+                gr.HTML(_section_heading("WhatsApp Summary"))
                 generate_whatsapp_button = gr.Button("Generate WhatsApp Summary")
                 whatsapp_summary_output = gr.Textbox(
                     label="WhatsApp Summary",
@@ -366,6 +393,12 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                 )
 
             with gr.Tab("Ledger", id="ledger"):
+                gr.HTML(
+                    _info_panel(
+                        "Ledger",
+                        "Review saved transactions, export CSV, and safely edit or delete individual records.",
+                    )
+                )
                 with gr.Row():
                     refresh_button = gr.Button("Refresh Ledger")
                     export_csv_button = gr.Button("Download CSV")
@@ -400,7 +433,7 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                     inputs=None,
                     outputs=ledger_output,
                 )
-                gr.Markdown("### Edit or Delete Transaction")
+                gr.HTML(_section_heading("Edit or Delete Transaction"))
                 with gr.Row():
                     edit_transaction_id = gr.Number(label="Transaction ID", precision=0)
                     load_transaction_button = gr.Button("Load transaction")
@@ -565,6 +598,21 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
         )
 
     return demo
+
+
+def _info_panel(title: str, body: str) -> str:
+    """Return a high-contrast information panel."""
+    return f"""
+    <section class="vl-info-panel">
+      <h2>{title}</h2>
+      <p>{body}</p>
+    </section>
+    """
+
+
+def _section_heading(title: str) -> str:
+    """Return a high-contrast section heading."""
+    return f'<h2 class="vl-section-heading">{title}</h2>'
 
 
 def _parse_note(note: str) -> tuple[dict[str, Any], dict[str, Any], str]:
