@@ -42,17 +42,13 @@ app = modal.App("voiceledger-backend")
 @modal.asgi_app(label="voiceledger-api")
 def api():
     """Serve VoiceLedger Modal API routes."""
-    from fastapi import FastAPI, File, HTTPException, UploadFile
-    from pydantic import BaseModel
+    from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 
     from voiceledger.parser.llm_parser import SYSTEM_PROMPT
     from voiceledger.parser.rules import parse_transaction as rule_parse_transaction
     from voiceledger.parser.schema import Transaction
 
     web_app = FastAPI(title="VoiceLedger Modal API")
-
-    class ParseRequest(BaseModel):
-        text: str
 
     @web_app.get("/health")
     def health() -> dict[str, str]:
@@ -86,8 +82,8 @@ def api():
         return {"transcript": transcript.strip()}
 
     @web_app.post("/parse")
-    def parse(request: ParseRequest) -> dict[str, Any]:
-        text = request.text.strip()
+    async def parse(request: Request) -> dict[str, Any]:
+        text = await _extract_parse_text(request)
         if not text:
             return {"transaction": Transaction(notes="", confidence=0.0).model_dump()}
 
@@ -103,6 +99,39 @@ def api():
         return {"transaction": transaction.model_dump()}
 
     return web_app
+
+
+async def _extract_parse_text(request: Any) -> str:
+    """Extract transaction text from JSON, form, or raw request bodies."""
+    try:
+        payload = await request.json()
+    except Exception:
+        payload = None
+
+    if isinstance(payload, dict):
+        for key in ("text", "note", "input", "query"):
+            value = payload.get(key)
+            if value is not None:
+                return str(value).strip()
+    elif payload is not None:
+        return str(payload).strip()
+
+    try:
+        form = await request.form()
+    except Exception:
+        form = {}
+
+    for key in ("text", "note", "input", "query"):
+        value = form.get(key) if hasattr(form, "get") else None
+        if value is not None:
+            return str(value).strip()
+
+    try:
+        body = await request.body()
+    except Exception:
+        return ""
+
+    return body.decode("utf-8", errors="ignore").strip()
 
 
 @lru_cache(maxsize=1)
