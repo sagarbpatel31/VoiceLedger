@@ -3,18 +3,21 @@
 ## Required Submission Items
 
 - Hugging Face Space is public and running.
-- README explains the problem, target user, model flow, and demo path.
+- README explains the problem, target user, model flow, Judge Demo Flow, and demo path.
 - Demo video is recorded and attached/shared.
 - Social post is published with the Space link.
 - Submission form includes the Space URL.
 
 ## Demo Verification
 
+- `Sections` navigation opens the correct page and no old Gradio tab row is visible.
+- First screen shows `1. Seed demo data -> 2. Record/type -> 3. Save -> 4. View dashboard/reports`.
 - `Demo Health` shows Modal reachable and backend version.
+- `Demo Health` shows NVIDIA Nemotron parser status.
 - Text parse works with `Sold 12 mangoes, 20 each`.
 - Voice parse works and transcript appears.
 - Save updates Dashboard and Ledger.
-- Customer Credit tab reflects `Amit owes 100` and `Amit paid 40`.
+- Customer Credit section reflects `Amit owes 100` and `Amit paid 40`.
 - Inventory reflects purchases and sales.
 - Ledger edit/delete works and derived balances rebuild.
 - CSV export downloads from Ledger.
@@ -27,8 +30,14 @@
 - Best Demo: voice-to-ledger flow, dashboard, reports, exports.
 - NVIDIA Nemotron Quest: Nemotron parser endpoint through Modal.
 - Modal Awards: Modal backend for speech and parsing endpoints.
-- Off-Brand Award: practical AI for street vendors and home businesses.
+- Off-Brand Award: custom mobile-first Gradio UI beyond the default look.
 - Field Notes: `docs/field-notes.md`.
+
+## Capture Assets
+
+- Screenshot or GIF: Record flow with parse source and save confirmation.
+- Screenshot or GIF: Dashboard with seeded transactions.
+- Screenshot or GIF: Reports/PDF plus Ledger CSV export.
 
 ## Final Manual Checks
 

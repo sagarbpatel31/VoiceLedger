@@ -100,9 +100,10 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                 gr.HTML(
                     _info_panel(
                         "Hackathon Demo Launchpad",
-                        "Use the navigation buttons above to open every section clearly, then seed demo data or check system health.",
+                        "Use the Sections buttons above to open each workflow page. VoiceLedger is locked for the hackathon demo: core bookkeeping is frozen, with Modal/Nemotron active and local fallback ready.",
                     )
                 )
+                gr.HTML(_judge_demo_panel())
                 with gr.Row():
                     record_seed_demo_button = gr.Button("Seed Demo Transactions", variant="primary")
                     record_health_button = gr.Button("Check Demo Health")
@@ -660,28 +661,21 @@ def _info_panel(title: str, body: str) -> str:
     """
 
 
-def _navigation_bar() -> str:
-    """Return the always-visible app navigation strip."""
-    links = [
-        ("Record Text & Voice", "record"),
-        ("Dashboard", "dashboard"),
-        ("Demo Health", "health"),
-        ("Submission Story", "story"),
-        ("Bulk Import", "bulk"),
-        ("Customer Credit", "credit"),
-        ("Inventory", "inventory"),
-        ("Reports & PDF", "reports"),
-        ("Ledger", "ledger"),
-    ]
-    anchors = "\n".join(
-        f'<a href="#vl-page-{page_id}">{label}</a>'
-        for label, page_id in links
-    )
-    return f"""
-    <nav class="vl-app-nav" aria-label="VoiceLedger sections">
-      <strong>Sections</strong>
-      <div>{anchors}</div>
-    </nav>
+def _judge_demo_panel() -> str:
+    """Return the judge-facing demo flow and backend status line."""
+    return """
+    <section class="vl-judge-panel">
+      <h2>Judge Demo Flow</h2>
+      <ol>
+        <li><strong>1. Seed demo data</strong><span>Load realistic sales, expense, credit, payment, and stock entries.</span></li>
+        <li><strong>2. Record/type</strong><span>Speak or enter a seller note like “Sold 12 mangoes, 20 each”.</span></li>
+        <li><strong>3. Save</strong><span>Review the structured transaction and save it to the ledger.</span></li>
+        <li><strong>4. View dashboard/reports</strong><span>Open Dashboard, Inventory, Credit, Ledger, PDF, WhatsApp, and CSV.</span></li>
+      </ol>
+      <p class="vl-health-line">
+        Demo Health: Modal backend • NVIDIA Nemotron parser • SQLite ledger • PDF export • configured Modal endpoints
+      </p>
+    </section>
     """
 
 
@@ -719,6 +713,11 @@ def _demo_health_placeholder() -> pd.DataFrame:
                 "check": "Deployed backend version",
                 "status": "Not checked yet",
                 "details": "Live Modal /version check appears here.",
+            },
+            {
+                "check": "NVIDIA Nemotron parser",
+                "status": "Not checked yet",
+                "details": "Model path: nvidia/NVIDIA-Nemotron-3-Nano-4B with local rule fallback.",
             },
             {
                 "check": "SQLite database",
@@ -942,7 +941,7 @@ def _save_bulk_transactions(review_table: Any, db_path: str | Path | None) -> st
 def _get_dashboard_data(
     db_path: str | Path | None,
 ) -> tuple[str, str, str, str, str, pd.DataFrame, pd.DataFrame]:
-    """Return business insight values for the Dashboard tab."""
+    """Return business insight values for the Dashboard section."""
     sales = calculate_daily_sales(db_path)
     expenses = calculate_daily_expenses(db_path)
     profit = calculate_net_profit(db_path)
@@ -992,6 +991,15 @@ def _get_system_check(db_path: str | Path | None) -> tuple[pd.DataFrame, str]:
             "details": f"{modal_health['message']} Version: {modal_health['version']}",
         }
     )
+    modal_parse_url = os.getenv(modal_api.MODAL_PARSE_URL_ENV)
+    modal_transcribe_url = os.getenv(modal_api.MODAL_TRANSCRIBE_URL_ENV)
+    checks.append(
+        {
+            "check": "NVIDIA Nemotron parser",
+            "status": "ok" if modal_parse_url else "fallback",
+            "details": "Modal /parse uses nvidia/NVIDIA-Nemotron-3-Nano-4B; local rule parser remains the deterministic fallback.",
+        }
+    )
 
     try:
         resolved_db_path = initialize_database(db_path)
@@ -1022,8 +1030,6 @@ def _get_system_check(db_path: str | Path | None) -> tuple[pd.DataFrame, str]:
         }
     )
 
-    modal_parse_url = os.getenv(modal_api.MODAL_PARSE_URL_ENV)
-    modal_transcribe_url = os.getenv(modal_api.MODAL_TRANSCRIBE_URL_ENV)
     checks.append(
         {
             "check": "Configured endpoints",

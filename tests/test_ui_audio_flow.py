@@ -81,6 +81,23 @@ def test_high_contrast_demo_panels_are_rendered() -> None:
     assert "NVIDIA Nemotron" in panel
 
 
+def test_judge_demo_panel_surfaces_submission_flow() -> None:
+    panel = gradio_app._judge_demo_panel()
+
+    assert "Judge Demo Flow" in panel
+    assert "1. Seed demo data" in panel
+    assert "2. Record/type" in panel
+    assert "3. Save" in panel
+    assert "4. View dashboard/reports" in panel
+    assert "NVIDIA Nemotron parser" in panel
+
+
+def test_demo_health_placeholder_includes_nemotron_status() -> None:
+    placeholder = gradio_app._demo_health_placeholder()
+
+    assert "NVIDIA Nemotron parser" in set(placeholder["check"])
+
+
 def test_show_page_makes_exactly_one_section_visible() -> None:
     updates = gradio_app._show_page("ledger")
 

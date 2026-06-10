@@ -246,6 +246,69 @@ body,
   margin: 4px 0 !important;
 }
 
+.vl-judge-panel {
+  background: #ffffff !important;
+  border: 1px solid var(--vl-border) !important;
+  border-radius: 14px !important;
+  box-shadow: var(--vl-shadow) !important;
+  color: var(--vl-text) !important;
+  padding: 14px !important;
+}
+
+.vl-judge-panel,
+.vl-judge-panel * {
+  color: var(--vl-text) !important;
+  opacity: 1 !important;
+}
+
+.vl-judge-panel h2 {
+  font-size: 18px !important;
+  font-weight: 800 !important;
+  margin: 0 0 10px !important;
+}
+
+.vl-judge-panel ol {
+  display: grid !important;
+  gap: 10px !important;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)) !important;
+  list-style: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.vl-judge-panel li {
+  background: #f6f7f2 !important;
+  border: 1px solid var(--vl-border) !important;
+  border-radius: 10px !important;
+  padding: 10px !important;
+}
+
+.vl-judge-panel li strong {
+  display: block !important;
+  font-size: 14px !important;
+  font-weight: 800 !important;
+}
+
+.vl-judge-panel li span {
+  color: #475247 !important;
+  display: block !important;
+  font-size: 13px !important;
+  line-height: 1.35 !important;
+  margin-top: 4px !important;
+}
+
+.vl-health-line {
+  background: #eef6ed !important;
+  border: 1px solid #b9d4b4 !important;
+  border-radius: 10px !important;
+  color: #183525 !important;
+  font-size: 14px !important;
+  font-weight: 800 !important;
+  line-height: 1.35 !important;
+  margin: 12px 0 0 !important;
+  padding: 10px !important;
+}
+
 .vl-chip {
   background: #2c2926 !important;
   border-radius: 6px !important;

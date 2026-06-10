@@ -2,7 +2,7 @@
 
 Built VoiceLedger for the Hugging Face Build Small Hackathon.
 
-It is a voice-first bookkeeping app for informal sellers, street vendors, home businesses, and small shop owners.
+It is a voice-first bookkeeping app for informal sellers, street vendors, home businesses, and small shop owners who need a ledger without opening a spreadsheet.
 
 Examples:
 
@@ -21,6 +21,8 @@ VoiceLedger turns those notes into a working ledger with:
 - inventory tracking
 - dashboard insights
 - PDF, CSV, and WhatsApp summaries
+
+For judges: the demo flow is seed data -> record/type -> parse/save -> dashboard/reports. The Space shows Modal health, Nemotron status, SQLite, PDF support, and endpoint configuration.
 
 The goal is practical AI for a real everyday workflow: helping small sellers track money, dues, and stock without spreadsheets.
 

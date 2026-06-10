@@ -8,14 +8,14 @@ sdk_version: 6.17.3
 python_version: '3.13'
 app_file: app.py
 pinned: false
-short_description: voice-first and text-assisted bookkeeping MVP
+short_description: voice bookkeeping for informal sellers
 ---
 
 # VoiceLedger
 
-VoiceLedger is a voice-first and text-assisted bookkeeping MVP for informal sellers, street vendors, home businesses, and small shop owners.
+VoiceLedger is a voice-first bookkeeping app for informal sellers, street vendors, home businesses, and small shop owners who track sales, customer dues, stock, and daily profit from quick spoken or typed notes.
 
-The current version focuses on a clean, deterministic foundation:
+The submission version is feature-frozen around the complete demo loop:
 
 - Record a transaction with your microphone and transcribe it with faster-whisper.
 - Type or paste a transaction note.
@@ -35,9 +35,19 @@ When Modal endpoints are configured, parsing runs through the Modal backend usin
 
 VoiceLedger is designed for the Build Small Hackathon Backyard AI track: a concrete, real-world bookkeeping problem for informal sellers and home businesses. The demo story is anonymized around a local seller who tracks sales, customer dues, stock, and daily profit from short voice notes.
 
+## Judge Demo Flow
+
+Use the `Sections` navigation in the Space:
+
+1. `Record Text & Voice`: click `Seed Demo Transactions`, then type or speak `Sold 12 mangoes, 20 each`.
+2. Parse and save the reviewed transaction; the status line shows Modal/NVIDIA Nemotron or local fallback.
+3. Open `Dashboard`, `Customer Credit`, `Inventory`, and `Ledger` to show automatic bookkeeping updates.
+4. Open `Reports & PDF` to download the PDF, generate the WhatsApp summary, and use `Ledger` to export CSV.
+5. Open `Demo Health` to show Modal backend status, deployed backend version, NVIDIA Nemotron parser status, SQLite, PDF support, and configured endpoints.
+
 ## Example Inputs
 
-Try these in the `Record Text & Voice` tab or paste them together in `Bulk Import`:
+Try these in `Record Text & Voice` or paste them together in `Bulk Import`:
 
 ```text
 Sold 12 mangoes, 20 each
@@ -62,13 +72,21 @@ The same examples are available in `sample_data/demo_transactions.txt`.
 
 ## Demo Script
 
-1. Use the `Hackathon Demo Launchpad` on the first screen to seed demo transactions. The same control is also available in the `Submission Story` tab.
-2. Go to `Record Text & Voice`, speak or type `Sold 12 mangoes, 20 each`, parse it, and save it.
+1. Use the `Hackathon Demo Launchpad` on the first screen to seed demo transactions.
+2. Open `Record Text & Voice`, speak or type `Sold 12 mangoes, 20 each`, parse it, and save it.
 3. Show the parse status: Modal/NVIDIA Nemotron when available, local fallback when needed.
 4. Open `Dashboard`, `Customer Credit`, and `Inventory` to show automatic bookkeeping updates.
 5. Open `Ledger`, load a transaction by id, update or delete it, then show refreshed balances.
 6. Download CSV from `Ledger`, generate the PDF and WhatsApp summary from `Reports & PDF`.
-7. Click `Check Demo Health` from the launchpad, or open `Demo Health`, to show Modal health, deployed backend version, database, PDF, and endpoint checks.
+7. Click `Check Demo Health` from the launchpad, or open `Demo Health`, to show Modal health, deployed backend version, Nemotron status, database, PDF, and endpoint checks.
+
+## Screenshot and GIF Moments
+
+Capture these three moments for the Space README, demo video, or social post:
+
+- `Record Text & Voice`: seeded demo data, transaction input, structured output, and parse source.
+- `Dashboard`: metrics, top-selling item, low-stock table, and outstanding credit.
+- `Reports & PDF` plus `Ledger`: PDF/WhatsApp export and CSV download.
 
 Supporting submission assets:
 
@@ -141,7 +159,7 @@ curl -X POST https://sagarpat3199--voiceledger-api.modal.run/parse \
 - Bulk import splits pasted notes by line, parses each line, supports review edits, and saves all reviewed transactions.
 - Modal integration lives in `backend/`; if endpoint URLs are not configured, local fallback stays active.
 - NVIDIA Nemotron 3 Nano 4B is used by the Modal parser endpoint and is also available as a local `transformers` parser provider for strict JSON transaction extraction.
-- The Demo Health tab checks Modal reachability, deployed backend version, SQLite availability, PDF support, and configured endpoint status.
+- The Demo Health section checks Modal reachability, deployed backend version, NVIDIA Nemotron parser status, SQLite availability, PDF support, and configured endpoint status.
 - Ledger edits and deletes rebuild customer balances and inventory from saved transactions to avoid stale side effects.
 - CSV export downloads all ledger rows in the same column order as the app table.
 - The UI uses a custom theme, responsive spacing, and dashboard cards instead of the default Gradio look.
