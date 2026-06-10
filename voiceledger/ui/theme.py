@@ -27,6 +27,39 @@ body,
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
 }
 
+#voiceledger-app,
+#voiceledger-app * {
+  color: var(--vl-text);
+}
+
+#voiceledger-app h1,
+#voiceledger-app h2,
+#voiceledger-app h3,
+#voiceledger-app h4,
+#voiceledger-app h5,
+#voiceledger-app h6,
+#voiceledger-app p,
+#voiceledger-app span,
+#voiceledger-app label,
+#voiceledger-app legend,
+#voiceledger-app .label-wrap,
+#voiceledger-app .prose,
+#voiceledger-app .prose * {
+  color: var(--vl-text) !important;
+}
+
+#voiceledger-app .vl-hero,
+#voiceledger-app .vl-hero * {
+  color: #ffffff !important;
+}
+
+#voiceledger-app code {
+  background: #2c2926 !important;
+  border-radius: 6px !important;
+  color: #ffffff !important;
+  padding: 2px 6px !important;
+}
+
 #voiceledger-app {
   max-width: 1180px !important;
   margin: 0 auto !important;
@@ -177,8 +210,23 @@ body,
 
 #voiceledger-app textarea,
 #voiceledger-app input,
+#voiceledger-app select,
 #voiceledger-app .wrap {
   border-radius: 12px !important;
+  color: var(--vl-text) !important;
+}
+
+#voiceledger-app textarea,
+#voiceledger-app input,
+#voiceledger-app select {
+  background: #ffffff !important;
+  border-color: var(--vl-border) !important;
+}
+
+#voiceledger-app textarea::placeholder,
+#voiceledger-app input::placeholder {
+  color: #6d756b !important;
+  opacity: 1 !important;
 }
 
 #voiceledger-app .tab-nav {
@@ -225,20 +273,50 @@ body,
 }
 
 #voiceledger-app table {
+  background: #ffffff !important;
   border-radius: 12px !important;
+  color: var(--vl-text) !important;
   overflow: hidden !important;
 }
 
 #voiceledger-app th {
-  background: var(--vl-surface-strong) !important;
+  background: #1f2a1f !important;
+  color: #ffffff !important;
+  font-weight: 800 !important;
+}
+
+#voiceledger-app td {
+  background: #ffffff !important;
   color: var(--vl-text) !important;
+}
+
+#voiceledger-app .dataframe,
+#voiceledger-app .dataframe *,
+#voiceledger-app [data-testid="dataframe"],
+#voiceledger-app [data-testid="dataframe"] * {
+  color: var(--vl-text) !important;
+}
+
+#voiceledger-app [data-testid="dataframe"] th,
+#voiceledger-app [data-testid="dataframe"] th *,
+#voiceledger-app .dataframe th,
+#voiceledger-app .dataframe th * {
+  background: #1f2a1f !important;
+  color: #ffffff !important;
   font-weight: 800 !important;
 }
 
 .vl-status,
-.vl-status p {
+.vl-status p,
+.vl-status h1,
+.vl-status h2,
+.vl-status h3,
+.vl-status h4,
+.vl-status h5,
+.vl-status h6,
+.vl-status strong,
+.vl-status span {
   color: var(--vl-text) !important;
-  font-size: 14px !important;
   margin: 0 !important;
 }
 
