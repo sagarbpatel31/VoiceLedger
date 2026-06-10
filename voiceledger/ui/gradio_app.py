@@ -81,20 +81,25 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
         )
 
         parsed_state = gr.State(value=None)
+        gr.HTML(_navigation_bar())
 
         with gr.Tabs(selected="record"):
             with gr.Tab("Record Text & Voice", id="record"):
                 gr.HTML(
                     _info_panel(
                         "Hackathon Demo Launchpad",
-                        "Use these controls first if the tab bar is collapsed on your screen.",
+                        "Use the navigation buttons above to open every section clearly, then seed demo data or check system health.",
                     )
                 )
                 with gr.Row():
                     record_seed_demo_button = gr.Button("Seed Demo Transactions", variant="primary")
                     record_health_button = gr.Button("Check Demo Health")
-                record_demo_status = gr.Markdown(elem_classes="vl-status")
+                record_demo_status = gr.Markdown(
+                    value="Ready. Click Seed Demo Transactions or Check Demo Health.",
+                    elem_classes="vl-status",
+                )
                 record_health_output = gr.Dataframe(
+                    value=_demo_health_placeholder(),
                     headers=["check", "status", "details"],
                     label="Demo health checks",
                     interactive=False,
@@ -231,13 +236,17 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                 )
                 refresh_health_button = gr.Button("Refresh Demo Health", variant="primary")
                 health_output = gr.Dataframe(
+                    value=_demo_health_placeholder(),
                     headers=["check", "status", "details"],
                     label="System checks",
                     interactive=False,
                     wrap=True,
                     elem_classes="vl-panel",
                 )
-                health_status_output = gr.Markdown(elem_classes="vl-status")
+                health_status_output = gr.Markdown(
+                    value="Click Refresh Demo Health to run live checks.",
+                    elem_classes="vl-status",
+                )
                 refresh_health_button.click(
                     fn=lambda: _get_system_check(db_path),
                     inputs=None,
@@ -610,9 +619,72 @@ def _info_panel(title: str, body: str) -> str:
     """
 
 
+def _navigation_bar() -> str:
+    """Return the always-visible app navigation strip."""
+    labels = [
+        "Record Text & Voice",
+        "Dashboard",
+        "Demo Health",
+        "Submission Story",
+        "Bulk Import",
+        "Customer Credit",
+        "Inventory",
+        "Reports & PDF",
+        "Ledger",
+    ]
+    buttons = "\n".join(
+        f'<button type="button" onclick="window.voiceledgerOpenTab && window.voiceledgerOpenTab({label!r})">{label}</button>'
+        for label in labels
+    )
+    return f"""
+    <nav class="vl-app-nav" aria-label="VoiceLedger sections">
+      <strong>Sections</strong>
+      <div>{buttons}</div>
+    </nav>
+    <script>
+      window.voiceledgerOpenTab = function(label) {{
+        const tabs = Array.from(document.querySelectorAll('#voiceledger-app [role="tab"], #voiceledger-app .tab-nav button'));
+        const target = tabs.find((tab) => (tab.textContent || '').trim() === label);
+        if (target) {{
+          target.click();
+          window.scrollTo({{ top: 0, behavior: 'smooth' }});
+        }}
+      }};
+    </script>
+    """
+
+
 def _section_heading(title: str) -> str:
     """Return a high-contrast section heading."""
     return f'<h2 class="vl-section-heading">{title}</h2>'
+
+
+def _demo_health_placeholder() -> pd.DataFrame:
+    """Return placeholder health rows so the demo health table is never blank."""
+    return pd.DataFrame(
+        [
+            {
+                "check": "Modal backend status",
+                "status": "Not checked yet",
+                "details": "Click Check Demo Health or Refresh Demo Health.",
+            },
+            {
+                "check": "Deployed backend version",
+                "status": "Not checked yet",
+                "details": "Live Modal /version check appears here.",
+            },
+            {
+                "check": "SQLite database",
+                "status": "Not checked yet",
+                "details": "Local database availability appears here.",
+            },
+            {
+                "check": "PDF support",
+                "status": "Not checked yet",
+                "details": "fpdf2 dependency status appears here.",
+            },
+        ]
+    )
 
 
 def _parse_note(note: str) -> tuple[dict[str, Any], dict[str, Any], str]:

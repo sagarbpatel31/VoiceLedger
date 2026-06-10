@@ -120,6 +120,58 @@ body,
   margin: 8px 0 0 !important;
 }
 
+.vl-app-nav {
+  background: #ffffff !important;
+  border: 1px solid var(--vl-border) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 10px 24px rgba(31, 42, 31, 0.05) !important;
+  color: var(--vl-text) !important;
+  margin: 0 0 12px !important;
+  opacity: 1 !important;
+  padding: 10px !important;
+}
+
+.vl-app-nav,
+.vl-app-nav * {
+  color: var(--vl-text) !important;
+  opacity: 1 !important;
+}
+
+.vl-app-nav strong {
+  display: block !important;
+  font-size: 13px !important;
+  font-weight: 800 !important;
+  margin: 0 0 8px !important;
+  text-transform: uppercase !important;
+}
+
+.vl-app-nav div {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 8px !important;
+}
+
+.vl-app-nav button {
+  appearance: none !important;
+  background: #eef6ed !important;
+  border: 1px solid #b9d4b4 !important;
+  border-radius: 999px !important;
+  color: #183525 !important;
+  cursor: pointer !important;
+  font-size: 14px !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+  min-height: 36px !important;
+  padding: 8px 12px !important;
+  white-space: nowrap !important;
+}
+
+.vl-app-nav button:hover {
+  background: var(--vl-accent) !important;
+  border-color: var(--vl-accent) !important;
+  color: #ffffff !important;
+}
+
 .vl-panel,
 .vl-panel > div {
   background: var(--vl-surface) !important;
@@ -353,10 +405,21 @@ body,
 }
 
 #voiceledger-app .tab-nav button {
+  background: #ffffff !important;
+  border: 1px solid var(--vl-border) !important;
   border-radius: 10px !important;
-  color: var(--vl-muted) !important;
+  color: #1f2a1f !important;
   font-size: 14px !important;
+  opacity: 1 !important;
+  visibility: visible !important;
   white-space: nowrap !important;
+}
+
+#voiceledger-app .tab-nav button *,
+#voiceledger-app [role="tab"] * {
+  color: inherit !important;
+  opacity: 1 !important;
+  visibility: visible !important;
 }
 
 #voiceledger-app .tab-nav button.selected {
@@ -372,14 +435,19 @@ body,
 }
 
 #voiceledger-app [role="tab"] {
-  color: var(--vl-muted) !important;
+  background: #ffffff !important;
+  border: 1px solid var(--vl-border) !important;
+  border-radius: 10px !important;
+  color: #1f2a1f !important;
   display: inline-flex !important;
+  font-weight: 800 !important;
   opacity: 1 !important;
   visibility: visible !important;
   white-space: nowrap !important;
 }
 
 #voiceledger-app [role="tab"][aria-selected="true"] {
+  background: #eef6ed !important;
   color: var(--vl-accent) !important;
 }
 
