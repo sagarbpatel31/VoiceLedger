@@ -24,6 +24,7 @@ image = (
         "fastapi[standard]>=0.115.0",
         "faster-whisper>=1.1.0",
         "huggingface_hub>=0.26.0",
+        "pandas>=2.2.0",
         "pydantic>=2.7.0",
     )
     .add_local_python_source("voiceledger", copy=True)
