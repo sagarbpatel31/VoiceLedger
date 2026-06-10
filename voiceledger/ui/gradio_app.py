@@ -55,6 +55,13 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
 
         with gr.Tabs(selected="record"):
             with gr.Tab("Record Text & Voice", id="record"):
+                gr.Markdown(
+                    """
+                    **Example inputs:** `Sold 12 mangoes, 20 each` · `Paid 500 for supplies` ·
+                    `Amit owes 100` · `Bought 50 mangoes`
+                    """,
+                    elem_classes="vl-status",
+                )
                 with gr.Row():
                     with gr.Column():
                         note_input = gr.Textbox(
@@ -152,6 +159,10 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                 )
 
             with gr.Tab("Bulk Import", id="bulk"):
+                gr.Markdown(
+                    "Paste one transaction per line. Demo examples are in `sample_data/demo_transactions.txt`.",
+                    elem_classes="vl-status",
+                )
                 bulk_notes_input = gr.Textbox(
                     label="Paste transaction notes",
                     placeholder="mango 12 x 20\nrent 300\nAmit owes 100\nRamesh paid 50",

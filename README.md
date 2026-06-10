@@ -31,6 +31,19 @@ The current version focuses on a clean, deterministic foundation:
 
 LLM parsing is intentionally not implemented yet.
 
+## Example Inputs
+
+Try these in the `Record Text & Voice` tab or paste them together in `Bulk Import`:
+
+```text
+Sold 12 mangoes, 20 each
+Paid 500 for supplies
+Amit owes 100
+Bought 50 mangoes
+```
+
+The same examples are available in `sample_data/demo_transactions.txt`.
+
 ## Examples
 
 | Input | Parsed result |
