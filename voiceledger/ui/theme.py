@@ -186,8 +186,10 @@ body,
   border: 1px solid var(--vl-border) !important;
   border-radius: 14px !important;
   box-shadow: 0 10px 24px rgba(31, 42, 31, 0.05);
+  display: flex !important;
+  flex-wrap: wrap !important;
   gap: 4px !important;
-  overflow-x: auto !important;
+  overflow: visible !important;
   padding: 6px !important;
 }
 
@@ -201,6 +203,25 @@ body,
 #voiceledger-app .tab-nav button.selected {
   background: var(--vl-text) !important;
   color: #ffffff !important;
+}
+
+#voiceledger-app [role="tablist"] {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 4px !important;
+  overflow: visible !important;
+}
+
+#voiceledger-app [role="tab"] {
+  color: var(--vl-muted) !important;
+  display: inline-flex !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  white-space: nowrap !important;
+}
+
+#voiceledger-app [role="tab"][aria-selected="true"] {
+  color: var(--vl-accent) !important;
 }
 
 #voiceledger-app table {

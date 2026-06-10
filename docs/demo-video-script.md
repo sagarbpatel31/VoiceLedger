@@ -8,9 +8,9 @@ VoiceLedger is a voice-first bookkeeping app for informal sellers and home busin
 
 ## 0:10-0:25 — Seed and Health
 
-Open the `Submission Story` tab and click `Seed Demo Transactions`.
+On the first screen, use `Hackathon Demo Launchpad` and click `Seed Demo Transactions`. If the tab bar is fully visible, the same control is also available in the `Submission Story` tab.
 
-Open `Demo Health` and show:
+Click `Check Demo Health` from the launchpad, or open `Demo Health`, and show:
 
 - Modal backend status
 - Deployed backend version

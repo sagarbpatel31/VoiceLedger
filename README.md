@@ -62,13 +62,13 @@ The same examples are available in `sample_data/demo_transactions.txt`.
 
 ## Demo Script
 
-1. Open the `Submission Story` tab and seed demo transactions.
+1. Use the `Hackathon Demo Launchpad` on the first screen to seed demo transactions. The same control is also available in the `Submission Story` tab.
 2. Go to `Record Text & Voice`, speak or type `Sold 12 mangoes, 20 each`, parse it, and save it.
 3. Show the parse status: Modal/NVIDIA Nemotron when available, local fallback when needed.
 4. Open `Dashboard`, `Customer Credit`, and `Inventory` to show automatic bookkeeping updates.
 5. Open `Ledger`, load a transaction by id, update or delete it, then show refreshed balances.
 6. Download CSV from `Ledger`, generate the PDF and WhatsApp summary from `Reports & PDF`.
-7. Open `Demo Health` to show Modal health, deployed backend version, database, PDF, and endpoint checks.
+7. Click `Check Demo Health` from the launchpad, or open `Demo Health`, to show Modal health, deployed backend version, database, PDF, and endpoint checks.
 
 Supporting submission assets:
 

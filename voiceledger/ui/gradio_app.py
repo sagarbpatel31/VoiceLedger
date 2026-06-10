@@ -85,6 +85,25 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
         with gr.Tabs(selected="record"):
             with gr.Tab("Record Text & Voice", id="record"):
                 gr.Markdown(
+                    """
+                    ### Hackathon Demo Launchpad
+
+                    Use these controls first if the tab bar is collapsed on your screen.
+                    """,
+                    elem_classes="vl-status",
+                )
+                with gr.Row():
+                    record_seed_demo_button = gr.Button("Seed Demo Transactions", variant="primary")
+                    record_health_button = gr.Button("Check Demo Health")
+                record_demo_status = gr.Markdown(elem_classes="vl-status")
+                record_health_output = gr.Dataframe(
+                    headers=["check", "status", "details"],
+                    label="Demo health checks",
+                    interactive=False,
+                    wrap=True,
+                    elem_classes="vl-panel",
+                )
+                gr.Markdown(
                     "**Workflow:** Record or type → Parse → Review → Save",
                     elem_classes="vl-status",
                 )
@@ -521,6 +540,28 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                 customer_balances_output,
                 inventory_output,
             ],
+        )
+        record_seed_demo_button.click(
+            fn=lambda: _seed_demo_transactions_and_refresh(db_path),
+            inputs=None,
+            outputs=[
+                record_demo_status,
+                total_sales_output,
+                total_expenses_output,
+                net_profit_output,
+                outstanding_credit_output,
+                top_selling_item_output,
+                top_items_output,
+                low_stock_output,
+                ledger_output,
+                customer_balances_output,
+                inventory_output,
+            ],
+        )
+        record_health_button.click(
+            fn=lambda: _get_system_check(db_path),
+            inputs=None,
+            outputs=[record_health_output, record_demo_status],
         )
 
     return demo
