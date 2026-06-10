@@ -40,17 +40,18 @@ Sold 12 mangoes, 20 each
 Click parse. Show:
 
 - Transcript if using voice
-- Structured output
+- Human-friendly transaction review card
+- Warning badges for low confidence, missing fields, duplicate risk, or negative stock when present
 - Parse source/status
-- Save confirmation
+- “Saved just now” receipt with stock, customer, or amount side effects
 
 ## 0:45-1:05 — Bookkeeping Updates
 
 Use the `Sections` navigation to open:
 
-- `Dashboard` to show sales/profit/credit
-- `Customer Credit` to show dues
-- `Inventory` to show stock
+- `Dashboard` to show sales/profit/credit and the sales/expense timeline
+- `Customer Credit` to show dues and a selected customer detail view
+- `Inventory` to show stock and a selected item detail view
 - `Ledger` to show saved transactions
 
 Say: “The model handles messy input, but the app owns the accounting state.”
@@ -61,13 +62,13 @@ In `Ledger`, load a transaction by id, update or delete it, and show balances re
 
 Click `Download CSV`.
 
-Open `Reports & PDF`, generate the PDF and WhatsApp summary.
+Open `Reports & PDF`, run `Daily Closeout`, then generate the PDF, WhatsApp summary, and CSV export.
 
 Suggested screenshot/GIF moments:
 
-- Record flow: note input, structured output, parse source, save confirmation.
-- Dashboard: sales, expenses, profit, credit, top item, low-stock inventory.
-- Reports/Ledger: PDF download, WhatsApp summary, CSV export.
+- Record flow: Today’s Work actions, review card, parse source, warning badges, save receipt.
+- Dashboard: sales, expenses, profit, credit, timeline, top item, low-stock inventory.
+- Reports/Ledger: Daily Closeout, PDF download, WhatsApp summary, CSV export.
 
 ## 1:20-1:30 — Close
 

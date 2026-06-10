@@ -16,18 +16,25 @@
 - `Demo Health` shows NVIDIA Nemotron parser status.
 - Text parse works with `Sold 12 mangoes, 20 each`.
 - Voice parse works and transcript appears.
+- Review card shows type, item, quantity, price, amount, customer, source, and confidence.
+- Smart warnings appear for low confidence, missing fields, duplicate risk, and negative stock.
+- Save shows a receipt with transaction type, amount, and side effects.
 - Save updates Dashboard and Ledger.
+- Dashboard timeline loads from saved transactions.
 - Customer Credit section reflects `Amit owes 100` and `Amit paid 40`.
+- Customer detail lookup shows customer transaction history and status.
 - Inventory reflects purchases and sales.
+- Inventory detail lookup shows bought, sold, current stock, and low-stock status.
 - Ledger edit/delete works and derived balances rebuild.
 - CSV export downloads from Ledger.
+- Daily Closeout generates PDF, CSV, WhatsApp summary, and a status line.
 - PDF report downloads from Reports.
 - WhatsApp summary generates copyable text.
 
 ## Prize Alignment
 
 - Backyard AI: specific informal seller bookkeeping problem.
-- Best Demo: voice-to-ledger flow, dashboard, reports, exports.
+- Best Demo: Today’s Work quick actions, review card, warnings, receipt, dashboard, reports, exports.
 - NVIDIA Nemotron Quest: Nemotron parser endpoint through Modal.
 - Modal Awards: Modal backend for speech and parsing endpoints.
 - Off-Brand Award: custom mobile-first Gradio UI beyond the default look.
@@ -35,9 +42,9 @@
 
 ## Capture Assets
 
-- Screenshot or GIF: Record flow with parse source and save confirmation.
-- Screenshot or GIF: Dashboard with seeded transactions.
-- Screenshot or GIF: Reports/PDF plus Ledger CSV export.
+- Screenshot or GIF: Record flow with review card, parse source, warning badges, and save receipt.
+- Screenshot or GIF: Dashboard with seeded transactions and timeline.
+- Screenshot or GIF: Daily Closeout plus PDF, WhatsApp, and CSV exports.
 
 ## Final Manual Checks
 

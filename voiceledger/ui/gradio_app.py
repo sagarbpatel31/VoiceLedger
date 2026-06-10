@@ -5,6 +5,8 @@ from __future__ import annotations
 import os
 import sqlite3
 import tempfile
+from datetime import datetime, timedelta
+from html import escape
 from importlib.util import find_spec
 from pathlib import Path
 from typing import Any
@@ -104,6 +106,7 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                     )
                 )
                 gr.HTML(_judge_demo_panel())
+                gr.HTML(_today_work_panel())
                 with gr.Row():
                     record_seed_demo_button = gr.Button("Seed Demo Transactions", variant="primary")
                     record_health_button = gr.Button("Check Demo Health")
@@ -171,18 +174,24 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                 with gr.Row():
                     save_button = gr.Button("Save reviewed transaction")
 
-                structured_output = gr.JSON(label="Structured output", elem_classes="vl-panel")
+                review_card_output = gr.HTML(_empty_review_card())
+                receipt_output = gr.HTML(_empty_receipt_card())
+                with gr.Row():
+                    add_another_button = gr.Button("Add another")
+                    view_dashboard_button = gr.Button("View dashboard")
+                    download_summary_button = gr.Button("Download summary")
+                structured_output = gr.JSON(label="Technical structured output", elem_classes="vl-panel", visible=False)
                 status_output = gr.Markdown(elem_classes="vl-status")
 
                 parse_button.click(
-                    fn=_parse_note,
+                    fn=lambda note: _parse_note(note, db_path),
                     inputs=note_input,
-                    outputs=[structured_output, parsed_state, status_output],
+                    outputs=[structured_output, parsed_state, status_output, review_card_output],
                 )
                 transcribe_button.click(
-                    fn=_transcribe_and_parse_audio,
+                    fn=lambda audio_path: _transcribe_and_parse_audio(audio_path, db_path),
                     inputs=audio_input,
-                    outputs=[transcript_output, structured_output, parsed_state, status_output],
+                    outputs=[transcript_output, structured_output, parsed_state, status_output, review_card_output],
                 )
                 example_sale_button.click(fn=lambda: "Sold 12 mangoes, 20 each", inputs=None, outputs=note_input)
                 example_expense_button.click(fn=lambda: "Paid 500 for supplies", inputs=None, outputs=note_input)
@@ -200,6 +209,16 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                     net_profit_output = gr.HTML()
                     outstanding_credit_output = gr.HTML()
                 top_selling_item_output = gr.Textbox(label="Top Selling Item", interactive=False)
+                timeline_output = gr.LinePlot(
+                    x="date",
+                    y="amount",
+                    color="kind",
+                    title="Sales and Expenses Timeline",
+                    x_title="Date",
+                    y_title="Amount",
+                    height=260,
+                    elem_classes="vl-panel",
+                )
                 with gr.Row():
                     top_items_output = gr.Dataframe(
                         headers=["item", "quantity_sold", "sales_amount"],
@@ -224,6 +243,7 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                         net_profit_output,
                         outstanding_credit_output,
                         top_selling_item_output,
+                        timeline_output,
                         top_items_output,
                         low_stock_output,
                     ],
@@ -237,6 +257,7 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                         net_profit_output,
                         outstanding_credit_output,
                         top_selling_item_output,
+                        timeline_output,
                         top_items_output,
                         low_stock_output,
                     ],
@@ -351,6 +372,23 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                     inputs=None,
                     outputs=customer_balances_output,
                 )
+                gr.HTML(_section_heading("Customer Detail"))
+                with gr.Row():
+                    customer_detail_name = gr.Textbox(label="Customer name", placeholder="Amit")
+                    customer_detail_button = gr.Button("Show customer detail")
+                customer_detail_summary = gr.HTML(_empty_detail_card("Customer detail"))
+                customer_detail_output = gr.Dataframe(
+                    headers=["id", "transaction_type", "amount", "notes", "created_at"],
+                    label="Customer transactions",
+                    interactive=False,
+                    wrap=True,
+                    elem_classes="vl-panel",
+                )
+                customer_detail_button.click(
+                    fn=lambda customer_name: _get_customer_detail(customer_name, db_path),
+                    inputs=customer_detail_name,
+                    outputs=[customer_detail_summary, customer_detail_output],
+                )
 
         with gr.Column(visible=False, elem_classes="vl-page-section") as inventory_page:
                 gr.HTML('<div id="vl-page-inventory" class="vl-page-anchor"></div>')
@@ -378,6 +416,23 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                     inputs=None,
                     outputs=inventory_output,
                 )
+                gr.HTML(_section_heading("Inventory Detail"))
+                with gr.Row():
+                    inventory_detail_item = gr.Textbox(label="Item", placeholder="mangoes")
+                    inventory_detail_button = gr.Button("Show inventory detail")
+                inventory_detail_summary = gr.HTML(_empty_detail_card("Inventory detail"))
+                inventory_detail_output = gr.Dataframe(
+                    headers=["id", "transaction_type", "quantity", "amount", "notes", "created_at"],
+                    label="Item movement",
+                    interactive=False,
+                    wrap=True,
+                    elem_classes="vl-panel",
+                )
+                inventory_detail_button.click(
+                    fn=lambda item: _get_inventory_detail(item, db_path),
+                    inputs=inventory_detail_item,
+                    outputs=[inventory_detail_summary, inventory_detail_output],
+                )
 
         with gr.Column(visible=False, elem_classes="vl-page-section") as reports_page:
                 gr.HTML('<div id="vl-page-reports" class="vl-page-anchor"></div>')
@@ -394,6 +449,24 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                     fn=lambda: _generate_daily_summary_report(db_path),
                     inputs=None,
                     outputs=[report_file_output, report_status_output],
+                )
+                gr.HTML(_section_heading("Daily Closeout"))
+                closeout_button = gr.Button("Run Daily Closeout", variant="primary")
+                closeout_summary_output = gr.HTML(_empty_detail_card("Daily closeout"))
+                with gr.Row():
+                    closeout_pdf_output = gr.File(label="Closeout PDF", elem_classes="vl-panel")
+                    closeout_csv_output = gr.File(label="Closeout CSV", elem_classes="vl-panel")
+                closeout_whatsapp_output = gr.Textbox(
+                    label="Closeout WhatsApp Summary",
+                    lines=8,
+                    interactive=False,
+                    elem_classes="vl-panel",
+                )
+                closeout_status_output = gr.Markdown(elem_classes="vl-status")
+                closeout_button.click(
+                    fn=lambda: _run_daily_closeout(db_path),
+                    inputs=None,
+                    outputs=[closeout_summary_output, closeout_pdf_output, closeout_csv_output, closeout_whatsapp_output, closeout_status_output],
                 )
                 gr.HTML(_section_heading("WhatsApp Summary"))
                 generate_whatsapp_button = gr.Button("Generate WhatsApp Summary")
@@ -519,11 +592,13 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
             inputs=parsed_state,
             outputs=[
                 status_output,
+                receipt_output,
                 total_sales_output,
                 total_expenses_output,
                 net_profit_output,
                 outstanding_credit_output,
                 top_selling_item_output,
+                timeline_output,
                 top_items_output,
                 low_stock_output,
                 ledger_output,
@@ -564,6 +639,7 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                 net_profit_output,
                 outstanding_credit_output,
                 top_selling_item_output,
+                timeline_output,
                 top_items_output,
                 low_stock_output,
                 ledger_output,
@@ -581,6 +657,7 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                 net_profit_output,
                 outstanding_credit_output,
                 top_selling_item_output,
+                timeline_output,
                 top_items_output,
                 low_stock_output,
                 ledger_output,
@@ -598,6 +675,7 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                 net_profit_output,
                 outstanding_credit_output,
                 top_selling_item_output,
+                timeline_output,
                 top_items_output,
                 low_stock_output,
                 ledger_output,
@@ -615,6 +693,7 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                 net_profit_output,
                 outstanding_credit_output,
                 top_selling_item_output,
+                timeline_output,
                 top_items_output,
                 low_stock_output,
                 ledger_output,
@@ -647,6 +726,17 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
         nav_inventory_button.click(fn=lambda: _show_page("inventory"), inputs=None, outputs=page_outputs)
         nav_reports_button.click(fn=lambda: _show_page("reports"), inputs=None, outputs=page_outputs)
         nav_ledger_button.click(fn=lambda: _show_page("ledger"), inputs=None, outputs=page_outputs)
+        add_another_button.click(
+            fn=_reset_record_form,
+            inputs=None,
+            outputs=[note_input, transcript_output, structured_output, parsed_state, status_output, review_card_output, receipt_output],
+        )
+        view_dashboard_button.click(fn=lambda: _show_page("dashboard"), inputs=None, outputs=page_outputs)
+        download_summary_button.click(
+            fn=lambda: _generate_daily_summary_report(db_path),
+            inputs=None,
+            outputs=[report_file_output, report_status_output],
+        )
 
     return demo
 
@@ -679,6 +769,22 @@ def _judge_demo_panel() -> str:
     """
 
 
+def _today_work_panel() -> str:
+    """Return guided daily action suggestions."""
+    return """
+    <section class="vl-today-panel">
+      <h2>Today’s Work</h2>
+      <div>
+        <span><strong>Record Sale</strong>“Sold 12 mangoes, 20 each”</span>
+        <span><strong>Record Expense</strong>“Paid 500 for supplies”</span>
+        <span><strong>Customer Owes</strong>“Amit owes 100”</span>
+        <span><strong>Customer Paid</strong>“Amit paid 50”</span>
+        <span><strong>Bought Stock</strong>“Bought 50 mangoes”</span>
+      </div>
+    </section>
+    """
+
+
 def _section_heading(title: str) -> str:
     """Return a high-contrast section heading."""
     return f'<h2 class="vl-section-heading">{title}</h2>'
@@ -698,6 +804,11 @@ def _show_page(active_page: str) -> tuple[dict[str, Any], ...]:
         "ledger",
     )
     return tuple(gr.update(visible=page_id == active_page) for page_id in page_ids)
+
+
+def _reset_record_form() -> tuple[str, str, dict[str, Any], None, str, str, str]:
+    """Clear the record flow for the next transaction."""
+    return "", "", _empty_transaction_payload(), None, "Ready for the next transaction.", _empty_review_card(), _empty_receipt_card()
 
 
 def _demo_health_placeholder() -> pd.DataFrame:
@@ -733,33 +844,39 @@ def _demo_health_placeholder() -> pd.DataFrame:
     )
 
 
-def _parse_note(note: str) -> tuple[dict[str, Any], dict[str, Any], str]:
+def _parse_note(note: str, db_path: str | Path | None = None) -> tuple[dict[str, Any], dict[str, Any], str, str]:
     """Parse a note and return display data plus serializable state."""
     result = modal_api.parse_transaction_result(note, fallback=local_parse_transaction)
     transaction = result.transaction
     payload = transaction.model_dump()
-    status = _status_message(transaction, result.message, result.fallback_reason)
-    return payload, payload, status
+    warnings = _review_warnings(transaction, db_path)
+    status = _status_message(transaction, result.message, result.fallback_reason, warnings=warnings)
+    return payload, payload, status, _review_card(transaction, result.message, warnings)
 
 
-def _transcribe_and_parse_audio(audio_path: Any) -> tuple[str, dict[str, Any], dict[str, Any] | None, str]:
+def _transcribe_and_parse_audio(
+    audio_path: Any,
+    db_path: str | Path | None = None,
+) -> tuple[str, dict[str, Any], dict[str, Any] | None, str, str]:
     """Transcribe recorded audio, parse the transcript, and return UI updates."""
     try:
         transcription = modal_api.transcribe_audio_result(audio_path, fallback=local_transcribe_audio)
     except Exception as exc:
         empty_payload = _empty_transaction_payload()
-        return "", empty_payload, None, f"Transcription failed: {exc}"
+        return "", empty_payload, None, f"Transcription failed: {exc}", _empty_review_card()
 
     parse_result = modal_api.parse_transaction_result(transcription.transcript, fallback=local_parse_transaction)
     transaction = parse_result.transaction
     payload = transaction.model_dump()
+    warnings = _review_warnings(transaction, db_path)
     status = _status_message(
         transaction,
         parse_result.message,
         parse_result.fallback_reason,
         prefix=_transcription_status(transcription),
+        warnings=warnings,
     )
-    return transcription.transcript, payload, payload, status
+    return transcription.transcript, payload, payload, status, _review_card(transaction, parse_result.message, warnings)
 
 
 def _save_transaction(transaction_payload: dict[str, Any] | None, db_path: str | Path | None) -> str:
@@ -775,10 +892,16 @@ def _save_transaction(transaction_payload: dict[str, Any] | None, db_path: str |
 def _save_transaction_and_refresh(
     transaction_payload: dict[str, Any] | None,
     db_path: str | Path | None,
-) -> tuple[str, str, str, str, str, str, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.io.formats.style.Styler]:
+) -> tuple[str, str, str, str, str, str, str, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.io.formats.style.Styler]:
     """Save a transaction and refresh the demo-critical data views."""
-    status = _save_transaction(transaction_payload, db_path)
-    return (status, *_refresh_core_views(db_path))
+    if not transaction_payload:
+        return ("Parse a transaction before saving.", _empty_receipt_card(), *_refresh_core_views(db_path))
+
+    transaction = Transaction(**transaction_payload)
+    transaction_id = add_transaction(transaction, db_path)
+    status = f"Saved transaction #{transaction_id}: {_transaction_summary(transaction)}."
+    receipt = _receipt_card(transaction, transaction_id, db_path)
+    return (status, receipt, *_refresh_core_views(db_path))
 
 
 def _load_transaction_for_edit(
@@ -842,7 +965,7 @@ def _update_transaction_and_refresh(
     notes: str | None,
     confidence: float | None,
     db_path: str | Path | None,
-) -> tuple[str, str, str, str, str, str, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.io.formats.style.Styler]:
+) -> tuple[str, str, str, str, str, str, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.io.formats.style.Styler]:
     """Update a transaction and refresh all dependent views."""
     parsed_id = _coerce_transaction_id(transaction_id)
     if parsed_id is None:
@@ -872,7 +995,7 @@ def _update_transaction_and_refresh(
 def _delete_transaction_and_refresh(
     transaction_id: float | int | None,
     db_path: str | Path | None,
-) -> tuple[str, str, str, str, str, str, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.io.formats.style.Styler]:
+) -> tuple[str, str, str, str, str, str, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.io.formats.style.Styler]:
     """Delete a transaction and refresh all dependent views."""
     parsed_id = _coerce_transaction_id(transaction_id)
     if parsed_id is None:
@@ -892,7 +1015,7 @@ def _export_ledger_csv(db_path: str | Path | None) -> tuple[str, str]:
 
 def _seed_demo_transactions_and_refresh(
     db_path: str | Path | None,
-) -> tuple[str, str, str, str, str, str, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.io.formats.style.Styler]:
+) -> tuple[str, str, str, str, str, str, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.io.formats.style.Styler]:
     """Seed realistic demo transactions and refresh all dependent views."""
     saved_ids = [add_transaction(local_parse_transaction(note), db_path) for note in DEMO_NOTES]
     return (
@@ -903,7 +1026,7 @@ def _seed_demo_transactions_and_refresh(
 
 def _refresh_core_views(
     db_path: str | Path | None,
-) -> tuple[str, str, str, str, str, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.io.formats.style.Styler]:
+) -> tuple[str, str, str, str, str, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.io.formats.style.Styler]:
     """Return dashboard, ledger, customer, and inventory refresh values."""
     return (
         *_get_dashboard_data(db_path),
@@ -940,7 +1063,7 @@ def _save_bulk_transactions(review_table: Any, db_path: str | Path | None) -> st
 
 def _get_dashboard_data(
     db_path: str | Path | None,
-) -> tuple[str, str, str, str, str, pd.DataFrame, pd.DataFrame]:
+) -> tuple[str, str, str, str, str, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """Return business insight values for the Dashboard section."""
     sales = calculate_daily_sales(db_path)
     expenses = calculate_daily_expenses(db_path)
@@ -948,6 +1071,7 @@ def _get_dashboard_data(
     credit = outstanding_credit(db_path)
     top_items = top_selling_items(db_path)
     low_stock = low_stock_items(db_path, threshold=LOW_STOCK_THRESHOLD)
+    timeline = _daily_timeline(db_path)
     top_item = "No sales recorded today"
     if not top_items.empty:
         first_item = top_items.iloc[0]
@@ -959,15 +1083,101 @@ def _get_dashboard_data(
         _metric_card("Net Profit", _format_money(profit), "Sales minus expenses", profit=profit),
         _metric_card("Outstanding Credit", _format_money(credit), "Customer dues"),
         top_item,
+        timeline,
         top_items,
         low_stock,
     )
+
+
+def _daily_timeline(db_path: str | Path | None) -> pd.DataFrame:
+    """Return chart-ready daily sales and expense rows."""
+    transactions = get_transactions(db_path)
+    columns = ["date", "kind", "amount"]
+    if transactions.empty or "created_at" not in transactions:
+        return pd.DataFrame(columns=columns)
+
+    data = transactions.copy()
+    data["date"] = pd.to_datetime(data["created_at"], errors="coerce").dt.strftime("%Y-%m-%d")
+    data["amount"] = pd.to_numeric(data["amount"], errors="coerce").fillna(0)
+    data["kind"] = data["transaction_type"].map(
+        {
+            "sale": "Sales",
+            "expense": "Expenses",
+            "inventory_purchase": "Expenses",
+        }
+    )
+    data = data[data["kind"].notna() & data["date"].notna()]
+    if data.empty:
+        return pd.DataFrame(columns=columns)
+
+    grouped = data.groupby(["date", "kind"], as_index=False)["amount"].sum()
+    return grouped.sort_values(["date", "kind"]).reset_index(drop=True)
 
 
 def _get_inventory_display(db_path: str | Path | None) -> pd.io.formats.style.Styler:
     """Return inventory with low-stock rows highlighted for Gradio display."""
     inventory = get_inventory(db_path)
     return inventory.style.apply(_highlight_low_stock, axis=1)
+
+
+def _get_customer_detail(customer_name: str | None, db_path: str | Path | None) -> tuple[str, pd.DataFrame]:
+    """Return customer balance summary and transaction history."""
+    name = (customer_name or "").strip()
+    columns = ["id", "transaction_type", "amount", "notes", "created_at"]
+    if not name:
+        return _empty_detail_card("Customer detail", "Enter a customer name."), pd.DataFrame(columns=columns)
+
+    ledger = get_transactions(db_path)
+    if ledger.empty:
+        return _empty_detail_card("Customer detail", "No saved transactions yet."), pd.DataFrame(columns=columns)
+
+    matches = ledger[ledger["customer"].fillna("").str.lower() == name.lower()].copy()
+    if matches.empty:
+        return _empty_detail_card("Customer detail", f"No transactions found for {name}."), pd.DataFrame(columns=columns)
+
+    credit = pd.to_numeric(matches.loc[matches["transaction_type"] == "customer_credit", "amount"], errors="coerce").fillna(0).sum()
+    paid = pd.to_numeric(matches.loc[matches["transaction_type"] == "customer_payment", "amount"], errors="coerce").fillna(0).sum()
+    balance = round(float(credit - paid), 2)
+    status = "clear"
+    if balance > 0:
+        status = "owes"
+    elif balance < 0:
+        status = "overpaid"
+    summary = f"""
+    <section class="vl-detail-card">
+      <h2>{escape(name)} · {status}</h2>
+      <p>Outstanding balance: <strong>{_format_money(balance)}</strong>. Credit: {_format_money(float(credit))}. Payments: {_format_money(float(paid))}.</p>
+    </section>
+    """
+    return summary, matches[columns].reset_index(drop=True)
+
+
+def _get_inventory_detail(item: str | None, db_path: str | Path | None) -> tuple[str, pd.DataFrame]:
+    """Return inventory summary and item movement history."""
+    item_name = (item or "").strip().lower()
+    columns = ["id", "transaction_type", "quantity", "amount", "notes", "created_at"]
+    if not item_name:
+        return _empty_detail_card("Inventory detail", "Enter an item name."), pd.DataFrame(columns=columns)
+
+    ledger = get_transactions(db_path)
+    if ledger.empty:
+        return _empty_detail_card("Inventory detail", "No saved transactions yet."), pd.DataFrame(columns=columns)
+
+    matches = ledger[ledger["item"].fillna("").str.lower() == item_name].copy()
+    if matches.empty:
+        return _empty_detail_card("Inventory detail", f"No movement found for {item_name}."), pd.DataFrame(columns=columns)
+
+    bought = pd.to_numeric(matches.loc[matches["transaction_type"] == "inventory_purchase", "quantity"], errors="coerce").fillna(0).sum()
+    sold = pd.to_numeric(matches.loc[matches["transaction_type"] == "sale", "quantity"], errors="coerce").fillna(0).sum()
+    stock = round(float(bought - sold), 2)
+    status = "low stock" if stock < LOW_STOCK_THRESHOLD else "in stock"
+    summary = f"""
+    <section class="vl-detail-card">
+      <h2>{escape(item_name)} · {status}</h2>
+      <p>Bought: {_format_quantity(bought)}. Sold: {_format_quantity(sold)}. Current stock: <strong>{_format_quantity(stock)}</strong>.</p>
+    </section>
+    """
+    return summary, matches[columns].reset_index(drop=True)
 
 
 def _generate_daily_summary_report(db_path: str | Path | None) -> tuple[str | None, str]:
@@ -977,6 +1187,46 @@ def _generate_daily_summary_report(db_path: str | Path | None) -> tuple[str | No
     except Exception as exc:
         return None, f"Could not generate report: {exc}"
     return str(report_path), "Daily Summary PDF is ready."
+
+
+def _run_daily_closeout(db_path: str | Path | None) -> tuple[str, str | None, str | None, str, str]:
+    """Generate the daily closeout summary and exports."""
+    sales = calculate_daily_sales(db_path)
+    expenses = calculate_daily_expenses(db_path)
+    profit = calculate_net_profit(db_path)
+    credit = outstanding_credit(db_path)
+    low_stock = low_stock_items(db_path, threshold=LOW_STOCK_THRESHOLD)
+
+    pdf_path: str | None
+    csv_path: str | None
+    try:
+        pdf_path = str(generate_daily_summary_pdf(db_path=db_path))
+    except Exception:
+        pdf_path = None
+    try:
+        csv_path = str(export_transactions_csv(db_path))
+    except Exception:
+        csv_path = None
+
+    whatsapp = generate_whatsapp_summary(db_path=db_path, low_stock_threshold=LOW_STOCK_THRESHOLD)
+    summary = f"""
+    <section class="vl-closeout-card">
+      <h2>Daily Closeout Ready</h2>
+      <div class="vl-closeout-grid">
+        <span><strong>Sales</strong>{_format_money(sales)}</span>
+        <span><strong>Expenses</strong>{_format_money(expenses)}</span>
+        <span><strong>Profit</strong>{_format_money(profit)}</span>
+        <span><strong>Credit</strong>{_format_money(credit)}</span>
+      </div>
+      <p>{len(low_stock)} low-stock item(s). PDF, WhatsApp summary, and CSV are prepared below.</p>
+    </section>
+    """
+    status = "Daily closeout complete."
+    if pdf_path is None:
+        status += " PDF generation needs attention."
+    if csv_path is None:
+        status += " CSV export needs attention."
+    return summary, pdf_path, csv_path, whatsapp, status
 
 
 def _get_system_check(db_path: str | Path | None) -> tuple[pd.DataFrame, str]:
@@ -1082,9 +1332,147 @@ def _format_quantity(value: object) -> str:
     return f"{quantity:.2f}"
 
 
+def _format_optional_number(value: object) -> str:
+    """Format optional numeric fields for review cards."""
+    if value is None:
+        return "—"
+    return _format_quantity(value)
+
+
 def _empty_transaction_payload() -> dict[str, Any]:
     """Return a serializable empty transaction for UI display."""
     return Transaction().model_dump()
+
+
+def _empty_review_card() -> str:
+    """Return the initial review card markup."""
+    return _empty_detail_card("Transaction review", "Parse a note to review fields, confidence, and warnings.")
+
+
+def _empty_receipt_card() -> str:
+    """Return the initial save receipt markup."""
+    return _empty_detail_card("Saved just now", "Save a reviewed transaction to see the receipt.")
+
+
+def _empty_detail_card(title: str, body: str = "Select an item to see details.") -> str:
+    """Return a neutral detail card."""
+    return f"""
+    <section class="vl-detail-card">
+      <h2>{escape(title)}</h2>
+      <p>{escape(body)}</p>
+    </section>
+    """
+
+
+def _review_card(transaction: Transaction, source_message: str, warnings: list[str]) -> str:
+    """Render a human-friendly transaction review card."""
+    warning_markup = "".join(f'<span class="vl-warning-badge">{escape(warning)}</span>' for warning in warnings)
+    if not warning_markup:
+        warning_markup = '<span class="vl-success-badge">Ready to save</span>'
+
+    fields = [
+        ("Type", transaction.transaction_type),
+        ("Item", transaction.item or "—"),
+        ("Quantity", _format_optional_number(transaction.quantity)),
+        ("Unit price", _format_money(transaction.unit_price) if transaction.unit_price is not None else "—"),
+        ("Amount", _format_money(transaction.amount) if transaction.amount is not None else "—"),
+        ("Customer", transaction.customer or "—"),
+        ("Confidence", f"{transaction.confidence:.2f}"),
+    ]
+    field_markup = "".join(
+        f"<div><span>{escape(label)}</span><strong>{escape(str(value))}</strong></div>"
+        for label, value in fields
+    )
+    return f"""
+    <section class="vl-review-card">
+      <div class="vl-review-header">
+        <h2>Review transaction</h2>
+        <p>{escape(source_message)}</p>
+      </div>
+      <div class="vl-review-grid">{field_markup}</div>
+      <div class="vl-warning-row">{warning_markup}</div>
+    </section>
+    """
+
+
+def _review_warnings(transaction: Transaction, db_path: str | Path | None) -> list[str]:
+    """Return smart review warnings before saving."""
+    warnings: list[str] = []
+    if transaction.transaction_type == "unknown":
+        warnings.append("Unknown type")
+    if transaction.amount is None and transaction.transaction_type in {"sale", "expense", "customer_credit", "customer_payment"}:
+        warnings.append("Missing amount")
+    if transaction.transaction_type in {"customer_credit", "customer_payment"} and not transaction.customer:
+        warnings.append("Missing customer")
+    if transaction.confidence < 0.75:
+        warnings.append("Low confidence")
+    if _would_make_stock_negative(transaction, db_path):
+        warnings.append("Inventory would go negative")
+    if _is_duplicate_transaction(transaction, db_path):
+        warnings.append("Possible duplicate")
+    return warnings
+
+
+def _would_make_stock_negative(transaction: Transaction, db_path: str | Path | None) -> bool:
+    """Return whether saving this sale would take inventory below zero."""
+    if transaction.transaction_type != "sale" or not transaction.item or transaction.quantity is None:
+        return False
+    inventory = get_inventory(db_path)
+    if inventory.empty:
+        return transaction.quantity > 0
+    matches = inventory[inventory["item"].astype(str).str.lower() == transaction.item.lower()]
+    if matches.empty:
+        return transaction.quantity > 0
+    current_stock = float(matches.iloc[0]["current_stock"])
+    return current_stock - float(transaction.quantity) < 0
+
+
+def _is_duplicate_transaction(transaction: Transaction, db_path: str | Path | None) -> bool:
+    """Return whether a similar transaction exists in the last five minutes."""
+    ledger = get_transactions(db_path)
+    if ledger.empty or "created_at" not in ledger:
+        return False
+    created_at = pd.to_datetime(ledger["created_at"], errors="coerce")
+    recent = ledger[created_at >= datetime.now() - timedelta(minutes=5)].copy()
+    if recent.empty:
+        return False
+    comparable = recent[
+        (recent["transaction_type"] == transaction.transaction_type)
+        & (recent["item"].fillna("").str.lower() == (transaction.item or "").lower())
+        & (recent["customer"].fillna("").str.lower() == (transaction.customer or "").lower())
+    ]
+    if transaction.amount is not None and not comparable.empty:
+        amounts = pd.to_numeric(comparable["amount"], errors="coerce").fillna(-1)
+        comparable = comparable[amounts == float(transaction.amount)]
+    return not comparable.empty
+
+
+def _receipt_card(transaction: Transaction, transaction_id: int, db_path: str | Path | None) -> str:
+    """Render a post-save receipt card."""
+    summary = _transaction_summary(transaction)
+    side_effect = _side_effect_summary(transaction, db_path)
+    return f"""
+    <section class="vl-receipt-card">
+      <h2>Saved just now</h2>
+      <p>Transaction #{transaction_id}: {escape(summary)}.</p>
+      <p>{escape(side_effect)}</p>
+    </section>
+    """
+
+
+def _side_effect_summary(transaction: Transaction, db_path: str | Path | None) -> str:
+    """Return a concise ledger side-effect summary."""
+    if transaction.transaction_type == "sale" and transaction.item and transaction.quantity is not None:
+        return f"Stock reduced by {_format_quantity(transaction.quantity)} {transaction.item}."
+    if transaction.transaction_type == "inventory_purchase" and transaction.item and transaction.quantity is not None:
+        return f"Stock increased by {_format_quantity(transaction.quantity)} {transaction.item}."
+    if transaction.transaction_type == "customer_credit" and transaction.customer:
+        return f"{transaction.customer}'s outstanding balance increased."
+    if transaction.transaction_type == "customer_payment" and transaction.customer:
+        return f"{transaction.customer}'s outstanding balance decreased."
+    if transaction.transaction_type == "expense":
+        return "Expense included in today's costs."
+    return "Ledger, dashboard, customer credit, and inventory views refreshed."
 
 
 def _status_message(
@@ -1092,6 +1480,7 @@ def _status_message(
     source_message: str = "Parsed transaction.",
     fallback_reason: str | None = None,
     prefix: str | None = None,
+    warnings: list[str] | None = None,
 ) -> str:
     """Return a human-readable parsing status."""
     parts = []
@@ -1105,6 +1494,8 @@ def _status_message(
         parts.append("Could not confidently parse this note. You can still inspect the structured output.")
     else:
         parts.append(f"Parsed as `{transaction.transaction_type}` with confidence `{transaction.confidence:.2f}`.")
+    if warnings:
+        parts.append("Review warnings: " + ", ".join(warnings) + ".")
     return " ".join(parts)
 
 

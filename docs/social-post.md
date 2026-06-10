@@ -16,13 +16,17 @@ VoiceLedger turns those notes into a working ledger with:
 - speech-to-text
 - NVIDIA Nemotron transaction parsing through Modal
 - local rule fallback for reliability
+- human-friendly review cards and smart warning badges
+- save receipts that explain stock, credit, and amount side effects
 - SQLite ledger
 - customer credit tracking
 - inventory tracking
-- dashboard insights
+- dashboard insights with a daily timeline
+- customer and inventory detail drilldowns
 - PDF, CSV, and WhatsApp summaries
+- one-click Daily Closeout
 
-For judges: the demo flow is seed data -> record/type -> parse/save -> dashboard/reports. The Space shows Modal health, Nemotron status, SQLite, PDF support, and endpoint configuration.
+For judges: the demo flow is seed data -> record/type -> review warnings -> save receipt -> dashboard/reports. The Space shows Modal health, Nemotron status, SQLite, PDF support, and endpoint configuration.
 
 The goal is practical AI for a real everyday workflow: helping small sellers track money, dues, and stock without spreadsheets.
 

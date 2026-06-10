@@ -21,10 +21,13 @@ The submission version is feature-frozen around the complete demo loop:
 - Type or paste a transaction note.
 - Bulk import multiple pasted notes for review and editing.
 - Parse it with Modal-hosted NVIDIA Nemotron when configured, with local rules as a deterministic fallback.
+- Review a human-friendly transaction card with warning badges before saving.
 - Save the structured transaction to SQLite.
+- See a “Saved just now” receipt with bookkeeping side effects.
 - View the ledger, customer credit book, and inventory in a Gradio interface.
-- Monitor business insights in a dashboard.
+- Monitor business insights and a daily sales/expense timeline in a dashboard.
 - Use a mobile-first, business-style Gradio interface with custom styling.
+- Run a Daily Closeout that prepares PDF, WhatsApp summary, and CSV exports together.
 - Download a Daily Summary PDF report.
 - Generate a WhatsApp-ready daily business summary.
 - Offload speech transcription and LLM parsing to optional Modal endpoints.
@@ -40,10 +43,11 @@ VoiceLedger is designed for the Build Small Hackathon Backyard AI track: a concr
 Use the `Sections` navigation in the Space:
 
 1. `Record Text & Voice`: click `Seed Demo Transactions`, then type or speak `Sold 12 mangoes, 20 each`.
-2. Parse and save the reviewed transaction; the status line shows Modal/NVIDIA Nemotron or local fallback.
-3. Open `Dashboard`, `Customer Credit`, `Inventory`, and `Ledger` to show automatic bookkeeping updates.
-4. Open `Reports & PDF` to download the PDF, generate the WhatsApp summary, and use `Ledger` to export CSV.
-5. Open `Demo Health` to show Modal backend status, deployed backend version, NVIDIA Nemotron parser status, SQLite, PDF support, and configured endpoints.
+2. Parse and inspect the review card; warning badges show missing fields, low confidence, duplicate risk, or negative stock.
+3. Save the reviewed transaction and show the “Saved just now” receipt.
+4. Open `Dashboard`, `Customer Credit`, `Inventory`, and `Ledger` to show timeline, details, and automatic bookkeeping updates.
+5. Open `Reports & PDF` to run Daily Closeout, download the PDF/CSV, and generate the WhatsApp summary.
+6. Open `Demo Health` to show Modal backend status, deployed backend version, NVIDIA Nemotron parser status, SQLite, PDF support, and configured endpoints.
 
 ## Example Inputs
 
@@ -73,20 +77,21 @@ The same examples are available in `sample_data/demo_transactions.txt`.
 ## Demo Script
 
 1. Use the `Hackathon Demo Launchpad` on the first screen to seed demo transactions.
-2. Open `Record Text & Voice`, speak or type `Sold 12 mangoes, 20 each`, parse it, and save it.
-3. Show the parse status: Modal/NVIDIA Nemotron when available, local fallback when needed.
-4. Open `Dashboard`, `Customer Credit`, and `Inventory` to show automatic bookkeeping updates.
-5. Open `Ledger`, load a transaction by id, update or delete it, then show refreshed balances.
-6. Download CSV from `Ledger`, generate the PDF and WhatsApp summary from `Reports & PDF`.
-7. Click `Check Demo Health` from the launchpad, or open `Demo Health`, to show Modal health, deployed backend version, Nemotron status, database, PDF, and endpoint checks.
+2. Open `Record Text & Voice`, speak or type `Sold 12 mangoes, 20 each`, parse it, and review the human-readable transaction card.
+3. Show the parse status and warning badges: Modal/NVIDIA Nemotron when available, local fallback when needed.
+4. Save the transaction and show the receipt with stock, customer, or amount side effects.
+5. Open `Dashboard`, `Customer Credit`, and `Inventory` to show timeline charts, customer detail, inventory detail, and automatic bookkeeping updates.
+6. Open `Ledger`, load a transaction by id, update or delete it, then show refreshed balances.
+7. Run Daily Closeout from `Reports & PDF`, then download CSV/PDF and generate the WhatsApp summary.
+8. Click `Check Demo Health` from the launchpad, or open `Demo Health`, to show Modal health, deployed backend version, Nemotron status, database, PDF, and endpoint checks.
 
 ## Screenshot and GIF Moments
 
 Capture these three moments for the Space README, demo video, or social post:
 
-- `Record Text & Voice`: seeded demo data, transaction input, structured output, and parse source.
-- `Dashboard`: metrics, top-selling item, low-stock table, and outstanding credit.
-- `Reports & PDF` plus `Ledger`: PDF/WhatsApp export and CSV download.
+- `Record Text & Voice`: Today’s Work quick actions, review card, warning badges, and save receipt.
+- `Dashboard`: metrics, sales/expense timeline, top-selling item, low-stock table, and outstanding credit.
+- `Reports & PDF` plus `Ledger`: Daily Closeout, PDF/WhatsApp export, CSV download, and ledger correction.
 
 Supporting submission assets:
 
@@ -155,6 +160,8 @@ curl -X POST https://sagarpat3199--voiceledger-api.modal.run/parse \
 - PDF reports are generated with fpdf2 from the current SQLite ledger state.
 - Parser architecture supports rule-based and Hugging Face Inference API compatible LLM parsers, with rule fallback on LLM failure.
 - The dashboard shows daily sales, expenses, profit, outstanding credit, top sellers, and low-stock alerts from saved data.
+- Customer and inventory detail views show transaction history for one customer or item.
+- Smart review warnings flag low confidence, missing fields, duplicate risk, and negative stock before save.
 - WhatsApp summaries provide a short copyable daily recap for sharing.
 - Bulk import splits pasted notes by line, parses each line, supports review edits, and saves all reviewed transactions.
 - Modal integration lives in `backend/`; if endpoint URLs are not configured, local fallback stays active.

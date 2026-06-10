@@ -33,11 +33,11 @@ This is a good small-model problem because the output space is constrained: a tr
 
 1. Seed demo transactions from the first-screen Judge Demo Flow.
 2. Record or type: `Sold 12 mangoes, 20 each`.
-3. Show the parse source: Modal/Nemotron or local fallback.
-4. Save the transaction.
-5. Show Dashboard totals, Ledger row, Customer Credit, and Inventory.
+3. Show the parse source, review card, confidence, and warning badges.
+4. Save the transaction and show the receipt with bookkeeping side effects.
+5. Show Dashboard totals, the sales/expense timeline, Ledger row, Customer Credit detail, and Inventory detail.
 6. Edit or delete a transaction and show balances rebuilding.
-7. Export CSV, PDF report, and WhatsApp daily summary.
+7. Run Daily Closeout, then export CSV, PDF report, and WhatsApp daily summary.
 8. Open Demo Health to show Modal, backend version, NVIDIA Nemotron parser status, SQLite, PDF, and endpoint checks.
 
 ## Submission Freeze
@@ -46,20 +46,20 @@ The hackathon version is intentionally frozen around the complete bookkeeping lo
 
 - Voice and text capture.
 - Modal/Nemotron parsing with local rule fallback.
-- Structured review and save.
-- Dashboard, customer credit, inventory, ledger correction, PDF, CSV, and WhatsApp exports.
+- Human-friendly review cards, warning badges, receipts, and save feedback.
+- Dashboard timeline, customer detail, inventory detail, ledger correction, Daily Closeout, PDF, CSV, and WhatsApp exports.
 - Demo Health for backend observability.
 
 This freeze keeps the demo reliable and makes the value proposition easier to judge.
 
 ## What We Learned
 
-The strongest product behavior is not the model call itself. It is the reliable loop around it: voice input, structured review, save, correction, and export. Informal sellers need speed, but they also need a way to fix mistakes. Edit/delete and CSV export make the app credible as a bookkeeping tool instead of a parser demo.
+The strongest product behavior is not the model call itself. It is the reliable loop around it: voice input, readable review, warning badges, save receipt, correction, and export. Informal sellers need speed, but they also need a way to spot mistakes and fix them. Edit/delete, detail drilldowns, Daily Closeout, and CSV export make the app credible as a bookkeeping tool instead of a parser demo.
 
 The small-model constraint helped keep the app honest. The model handles the fuzzy human input; the code owns the accounting state.
 
 ## Screenshot Moments
 
-- Record flow: seed data, transaction input, structured parse, source/status, save confirmation.
-- Dashboard: daily totals, outstanding credit, top seller, low-stock inventory.
-- Reports and exports: PDF download, WhatsApp summary, CSV ledger export.
+- Record flow: seed data, Today’s Work actions, review card, warning badges, source/status, save receipt.
+- Dashboard: daily totals, outstanding credit, sales/expense timeline, top seller, low-stock inventory.
+- Reports and exports: Daily Closeout, PDF download, WhatsApp summary, CSV ledger export.

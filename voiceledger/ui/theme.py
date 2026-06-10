@@ -309,6 +309,115 @@ body,
   padding: 10px !important;
 }
 
+.vl-today-panel,
+.vl-review-card,
+.vl-receipt-card,
+.vl-detail-card,
+.vl-closeout-card {
+  background: #ffffff !important;
+  border: 1px solid var(--vl-border) !important;
+  border-radius: 14px !important;
+  box-shadow: var(--vl-shadow) !important;
+  color: var(--vl-text) !important;
+  padding: 14px !important;
+}
+
+.vl-today-panel *,
+.vl-review-card *,
+.vl-receipt-card *,
+.vl-detail-card *,
+.vl-closeout-card * {
+  color: var(--vl-text) !important;
+  opacity: 1 !important;
+}
+
+.vl-today-panel h2,
+.vl-review-card h2,
+.vl-receipt-card h2,
+.vl-detail-card h2,
+.vl-closeout-card h2 {
+  font-size: 18px !important;
+  font-weight: 800 !important;
+  margin: 0 0 10px !important;
+}
+
+.vl-today-panel div,
+.vl-review-grid,
+.vl-closeout-grid {
+  display: grid !important;
+  gap: 10px !important;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)) !important;
+}
+
+.vl-today-panel span,
+.vl-review-grid div,
+.vl-closeout-grid span {
+  background: #f6f7f2 !important;
+  border: 1px solid var(--vl-border) !important;
+  border-radius: 10px !important;
+  display: block !important;
+  padding: 10px !important;
+}
+
+.vl-today-panel strong,
+.vl-review-grid span,
+.vl-closeout-grid strong {
+  color: #475247 !important;
+  display: block !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+}
+
+.vl-review-grid strong,
+.vl-closeout-grid span {
+  font-size: 16px !important;
+  font-weight: 800 !important;
+  margin-top: 4px !important;
+}
+
+.vl-review-header p,
+.vl-receipt-card p,
+.vl-detail-card p,
+.vl-closeout-card p {
+  color: #475247 !important;
+  font-size: 14px !important;
+  line-height: 1.4 !important;
+  margin: 4px 0 0 !important;
+}
+
+.vl-warning-row {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 8px !important;
+  margin-top: 12px !important;
+}
+
+.vl-warning-badge,
+.vl-success-badge {
+  border-radius: 999px !important;
+  display: inline-block !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  padding: 6px 10px !important;
+}
+
+.vl-warning-badge {
+  background: #fff3cd !important;
+  border: 1px solid #e3bc5b !important;
+  color: #5f370e !important;
+}
+
+.vl-success-badge {
+  background: #e7f6ed !important;
+  border: 1px solid #9bd2ad !important;
+  color: #145a39 !important;
+}
+
+.vl-receipt-card {
+  border-color: #9bd2ad !important;
+}
+
 .vl-chip {
   background: #2c2926 !important;
   border-radius: 6px !important;

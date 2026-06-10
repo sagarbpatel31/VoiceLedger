@@ -12,12 +12,13 @@ def test_transcribe_and_parse_audio_handles_transcription_error(monkeypatch) -> 
 
     monkeypatch.setattr(gradio_app.modal_api, "transcribe_audio_result", lambda audio, fallback: fail_transcription(audio))
 
-    transcript, structured, state, status = gradio_app._transcribe_and_parse_audio("audio.wav")
+    transcript, structured, state, status, review_card = gradio_app._transcribe_and_parse_audio("audio.wav")
 
     assert transcript == ""
     assert structured["transaction_type"] == "unknown"
     assert state is None
     assert status == "Transcription failed: test failure"
+    assert "Transaction review" in review_card
 
 
 def test_transcribe_and_parse_audio_parses_transcript(monkeypatch) -> None:
@@ -41,7 +42,7 @@ def test_transcribe_and_parse_audio_parses_transcript(monkeypatch) -> None:
         ),
     )
 
-    transcript, structured, state, status = gradio_app._transcribe_and_parse_audio("audio.wav")
+    transcript, structured, state, status, review_card = gradio_app._transcribe_and_parse_audio("audio.wav")
 
     assert transcript == "Sold 12 mangoes, 20 each"
     assert structured["transaction_type"] == "sale"
@@ -50,6 +51,7 @@ def test_transcribe_and_parse_audio_parses_transcript(monkeypatch) -> None:
     assert "sale" in status
     assert "Modal faster-whisper" in status
     assert "test fallback" in status
+    assert "Review transaction" in review_card
 
 
 def test_parse_note_surfaces_modal_source(monkeypatch) -> None:
@@ -63,11 +65,12 @@ def test_parse_note_surfaces_modal_source(monkeypatch) -> None:
         ),
     )
 
-    structured, state, status = gradio_app._parse_note("Paid 500 for supplies")
+    structured, state, status, review_card = gradio_app._parse_note("Paid 500 for supplies")
 
     assert structured["transaction_type"] == "expense"
     assert state == structured
     assert "NVIDIA Nemotron" in status
+    assert "Ready to save" in review_card
 
 
 def test_high_contrast_demo_panels_are_rendered() -> None:
@@ -104,3 +107,35 @@ def test_show_page_makes_exactly_one_section_visible() -> None:
     assert len(updates) == 9
     assert updates[-1]["visible"] is True
     assert sum(1 for update in updates if update["visible"]) == 1
+
+
+def test_review_warnings_flag_missing_and_low_confidence() -> None:
+    transaction = gradio_app.Transaction(transaction_type="unknown", confidence=0.2)
+
+    warnings = gradio_app._review_warnings(transaction, None)
+
+    assert "Unknown type" in warnings
+    assert "Low confidence" in warnings
+
+
+def test_receipt_card_summarizes_saved_sale(tmp_path) -> None:
+    transaction = gradio_app.local_parse_transaction("Sold 12 mangoes, 20 each")
+
+    receipt = gradio_app._receipt_card(transaction, 4, tmp_path / "voiceledger.sqlite3")
+
+    assert "Saved just now" in receipt
+    assert "Transaction #4" in receipt
+    assert "Stock reduced" in receipt
+
+
+def test_daily_closeout_returns_exports(tmp_path) -> None:
+    db_path = tmp_path / "voiceledger.sqlite3"
+    gradio_app.add_transaction(gradio_app.local_parse_transaction("Sold 12 mangoes, 20 each"), db_path)
+
+    summary, pdf_path, csv_path, whatsapp, status = gradio_app._run_daily_closeout(db_path)
+
+    assert "Daily Closeout Ready" in summary
+    assert pdf_path is not None
+    assert csv_path is not None
+    assert "VoiceLedger Daily Summary" in whatsapp
+    assert "Daily closeout complete" in status
