@@ -401,26 +401,21 @@ body,
 }
 
 #voiceledger-app .tab-nav {
-  background: rgba(255, 255, 255, 0.78) !important;
-  border: 1px solid var(--vl-border) !important;
-  border-radius: 14px !important;
-  box-shadow: 0 10px 24px rgba(31, 42, 31, 0.05);
-  display: flex !important;
-  flex-wrap: wrap !important;
-  gap: 4px !important;
-  overflow: visible !important;
-  padding: 6px !important;
+  display: none !important;
+  height: 0 !important;
+  margin: 0 !important;
+  opacity: 0 !important;
+  overflow: hidden !important;
+  padding: 0 !important;
+  pointer-events: none !important;
+  visibility: hidden !important;
 }
 
+#voiceledger-app .tab-nav *,
 #voiceledger-app .tab-nav button {
-  background: #ffffff !important;
-  border: 1px solid var(--vl-border) !important;
-  border-radius: 10px !important;
-  color: #1f2a1f !important;
-  font-size: 14px !important;
-  opacity: 1 !important;
-  visibility: visible !important;
-  white-space: nowrap !important;
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
 }
 
 #voiceledger-app .tab-nav button *,
@@ -437,9 +432,13 @@ body,
 
 #voiceledger-app [role="tablist"] {
   display: none !important;
-  flex-wrap: wrap !important;
-  gap: 4px !important;
-  overflow: visible !important;
+  height: 0 !important;
+  margin: 0 !important;
+  opacity: 0 !important;
+  overflow: hidden !important;
+  padding: 0 !important;
+  pointer-events: none !important;
+  visibility: hidden !important;
 }
 
 #voiceledger-app [role="tabpanel"] {
@@ -459,15 +458,9 @@ body,
 }
 
 #voiceledger-app [role="tab"] {
-  background: #ffffff !important;
-  border: 1px solid var(--vl-border) !important;
-  border-radius: 10px !important;
-  color: #1f2a1f !important;
-  display: inline-flex !important;
-  font-weight: 800 !important;
-  opacity: 1 !important;
-  visibility: visible !important;
-  white-space: nowrap !important;
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
 }
 
 #voiceledger-app [role="tab"][aria-selected="true"] {
