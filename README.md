@@ -70,6 +70,13 @@ The same examples are available in `sample_data/demo_transactions.txt`.
 6. Download CSV from `Ledger`, generate the PDF and WhatsApp summary from `Reports & PDF`.
 7. Open `Demo Health` to show Modal health, deployed backend version, database, PDF, and endpoint checks.
 
+Supporting submission assets:
+
+- `docs/demo-video-script.md`
+- `docs/submission-checklist.md`
+- `docs/social-post.md`
+- `docs/field-notes.md`
+
 ## Repository Structure
 
 ```text
