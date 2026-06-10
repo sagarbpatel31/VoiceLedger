@@ -151,7 +151,8 @@ body,
   gap: 8px !important;
 }
 
-.vl-app-nav a {
+.vl-app-nav a,
+.vl-app-nav button {
   appearance: none !important;
   background: #eef6ed !important;
   border: 1px solid #b9d4b4 !important;
@@ -169,9 +170,21 @@ body,
   white-space: nowrap !important;
 }
 
-.vl-app-nav a:hover {
+.vl-app-nav a:hover,
+.vl-app-nav button:hover {
   background: var(--vl-accent) !important;
   border-color: var(--vl-accent) !important;
+  color: #ffffff !important;
+}
+
+.vl-app-nav button,
+.vl-app-nav button * {
+  color: #183525 !important;
+  opacity: 1 !important;
+}
+
+.vl-app-nav button:hover,
+.vl-app-nav button:hover * {
   color: #ffffff !important;
 }
 

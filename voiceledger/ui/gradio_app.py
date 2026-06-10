@@ -81,10 +81,21 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
         )
 
         parsed_state = gr.State(value=None)
-        gr.HTML(_navigation_bar())
 
-        with gr.Tabs(selected="record"):
-            with gr.Tab("Record Text & Voice", id="record"):
+        with gr.Group(elem_classes="vl-app-nav"):
+            gr.HTML("<strong>Sections</strong>")
+            with gr.Row():
+                nav_record_button = gr.Button("Record Text & Voice")
+                nav_dashboard_button = gr.Button("Dashboard")
+                nav_health_button = gr.Button("Demo Health")
+                nav_story_button = gr.Button("Submission Story")
+                nav_bulk_button = gr.Button("Bulk Import")
+                nav_credit_button = gr.Button("Customer Credit")
+                nav_inventory_button = gr.Button("Inventory")
+                nav_reports_button = gr.Button("Reports & PDF")
+                nav_ledger_button = gr.Button("Ledger")
+
+        with gr.Column(visible=True, elem_classes="vl-page-section") as record_page:
                 gr.HTML('<div id="vl-page-record" class="vl-page-anchor"></div>')
                 gr.HTML(
                     _info_panel(
@@ -178,7 +189,7 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                 example_payment_button.click(fn=lambda: "Amit paid 50", inputs=None, outputs=note_input)
                 example_inventory_button.click(fn=lambda: "Bought 50 mangoes", inputs=None, outputs=note_input)
 
-            with gr.Tab("Dashboard", id="dashboard"):
+        with gr.Column(visible=False, elem_classes="vl-page-section") as dashboard_page:
                 gr.HTML('<div id="vl-page-dashboard" class="vl-page-anchor"></div>')
                 gr.HTML(_section_heading("Dashboard"))
                 refresh_dashboard_button = gr.Button("Refresh Dashboard", variant="primary")
@@ -230,7 +241,7 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                     ],
                 )
 
-            with gr.Tab("Demo Health", id="health"):
+        with gr.Column(visible=False, elem_classes="vl-page-section") as health_page:
                 gr.HTML('<div id="vl-page-health" class="vl-page-anchor"></div>')
                 gr.HTML(
                     _info_panel(
@@ -262,7 +273,7 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                     outputs=[health_output, health_status_output],
                 )
 
-            with gr.Tab("Submission Story", id="story"):
+        with gr.Column(visible=False, elem_classes="vl-page-section") as story_page:
                 gr.HTML('<div id="vl-page-story" class="vl-page-anchor"></div>')
                 gr.HTML(
                     """
@@ -277,7 +288,7 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                 seed_demo_button = gr.Button("Seed Demo Transactions", variant="primary")
                 seed_demo_status = gr.Markdown(elem_classes="vl-status")
 
-            with gr.Tab("Bulk Import", id="bulk"):
+        with gr.Column(visible=False, elem_classes="vl-page-section") as bulk_page:
                 gr.HTML('<div id="vl-page-bulk" class="vl-page-anchor"></div>')
                 gr.HTML(
                     _info_panel(
@@ -313,7 +324,7 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                     outputs=bulk_status_output,
                 )
 
-            with gr.Tab("Customer Credit", id="credit"):
+        with gr.Column(visible=False, elem_classes="vl-page-section") as credit_page:
                 gr.HTML('<div id="vl-page-credit" class="vl-page-anchor"></div>')
                 gr.HTML(
                     _info_panel(
@@ -340,7 +351,7 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                     outputs=customer_balances_output,
                 )
 
-            with gr.Tab("Inventory", id="inventory"):
+        with gr.Column(visible=False, elem_classes="vl-page-section") as inventory_page:
                 gr.HTML('<div id="vl-page-inventory" class="vl-page-anchor"></div>')
                 gr.HTML(
                     _info_panel(
@@ -367,7 +378,7 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                     outputs=inventory_output,
                 )
 
-            with gr.Tab("Reports & PDF", id="reports"):
+        with gr.Column(visible=False, elem_classes="vl-page-section") as reports_page:
                 gr.HTML('<div id="vl-page-reports" class="vl-page-anchor"></div>')
                 gr.HTML(
                     _info_panel(
@@ -410,7 +421,7 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                     outputs=whatsapp_summary_output,
                 )
 
-            with gr.Tab("Ledger", id="ledger"):
+        with gr.Column(visible=False, elem_classes="vl-page-section") as ledger_page:
                 gr.HTML('<div id="vl-page-ledger" class="vl-page-anchor"></div>')
                 gr.HTML(
                     _info_panel(
@@ -615,6 +626,26 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
             inputs=None,
             outputs=[record_health_output, record_demo_status],
         )
+        page_outputs = [
+            record_page,
+            dashboard_page,
+            health_page,
+            story_page,
+            bulk_page,
+            credit_page,
+            inventory_page,
+            reports_page,
+            ledger_page,
+        ]
+        nav_record_button.click(fn=lambda: _show_page("record"), inputs=None, outputs=page_outputs)
+        nav_dashboard_button.click(fn=lambda: _show_page("dashboard"), inputs=None, outputs=page_outputs)
+        nav_health_button.click(fn=lambda: _show_page("health"), inputs=None, outputs=page_outputs)
+        nav_story_button.click(fn=lambda: _show_page("story"), inputs=None, outputs=page_outputs)
+        nav_bulk_button.click(fn=lambda: _show_page("bulk"), inputs=None, outputs=page_outputs)
+        nav_credit_button.click(fn=lambda: _show_page("credit"), inputs=None, outputs=page_outputs)
+        nav_inventory_button.click(fn=lambda: _show_page("inventory"), inputs=None, outputs=page_outputs)
+        nav_reports_button.click(fn=lambda: _show_page("reports"), inputs=None, outputs=page_outputs)
+        nav_ledger_button.click(fn=lambda: _show_page("ledger"), inputs=None, outputs=page_outputs)
 
     return demo
 
@@ -657,6 +688,22 @@ def _navigation_bar() -> str:
 def _section_heading(title: str) -> str:
     """Return a high-contrast section heading."""
     return f'<h2 class="vl-section-heading">{title}</h2>'
+
+
+def _show_page(active_page: str) -> tuple[dict[str, Any], ...]:
+    """Return Gradio visibility updates for the app pages."""
+    page_ids = (
+        "record",
+        "dashboard",
+        "health",
+        "story",
+        "bulk",
+        "credit",
+        "inventory",
+        "reports",
+        "ledger",
+    )
+    return tuple(gr.update(visible=page_id == active_page) for page_id in page_ids)
 
 
 def _demo_health_placeholder() -> pd.DataFrame:

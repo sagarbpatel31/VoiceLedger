@@ -79,3 +79,11 @@ def test_high_contrast_demo_panels_are_rendered() -> None:
     assert "vl-info-panel" in panel
     assert "Demo Health" in panel
     assert "NVIDIA Nemotron" in panel
+
+
+def test_show_page_makes_exactly_one_section_visible() -> None:
+    updates = gradio_app._show_page("ledger")
+
+    assert len(updates) == 9
+    assert updates[-1]["visible"] is True
+    assert sum(1 for update in updates if update["visible"]) == 1
