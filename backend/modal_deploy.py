@@ -26,7 +26,7 @@ image = (
         "huggingface_hub>=0.26.0",
         "pydantic>=2.7.0",
     )
-    .add_local_python_source("voiceledger")
+    .add_local_python_source("voiceledger", copy=True)
 )
 
 app = modal.App("voiceledger-backend")
