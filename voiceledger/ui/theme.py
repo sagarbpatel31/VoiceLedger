@@ -29,7 +29,22 @@ body,
 
 #voiceledger-app,
 #voiceledger-app * {
-  color: var(--vl-text);
+  color: var(--vl-text) !important;
+}
+
+#voiceledger-app .generating,
+#voiceledger-app .generating *,
+#voiceledger-app .pending,
+#voiceledger-app .pending *,
+#voiceledger-app .loading,
+#voiceledger-app .loading *,
+#voiceledger-app .wrap,
+#voiceledger-app .wrap *,
+#voiceledger-app .block,
+#voiceledger-app .block *,
+#voiceledger-app .form,
+#voiceledger-app .form * {
+  opacity: 1 !important;
 }
 
 #voiceledger-app h1,
@@ -119,42 +134,47 @@ body,
 }
 
 .vl-metric-card {
-  background: var(--vl-surface);
-  border: 1px solid var(--vl-border);
+  background: var(--vl-surface) !important;
+  border: 1px solid var(--vl-border) !important;
   border-radius: 14px;
-  box-shadow: var(--vl-shadow);
+  box-shadow: var(--vl-shadow) !important;
+  color: var(--vl-text) !important;
   min-height: 112px;
+  opacity: 1 !important;
   padding: 16px;
 }
 
 .vl-metric-label {
-  color: var(--vl-muted);
+  color: #475247 !important;
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.04em;
+  opacity: 1 !important;
   text-transform: uppercase;
 }
 
 .vl-metric-value {
-  color: var(--vl-text);
+  color: var(--vl-text) !important;
   font-size: 30px;
   font-weight: 800;
   line-height: 1.1;
   margin-top: 10px;
+  opacity: 1 !important;
 }
 
 .vl-metric-note {
-  color: var(--vl-muted);
+  color: #475247 !important;
   font-size: 12px;
   margin-top: 8px;
+  opacity: 1 !important;
 }
 
 .vl-profit-positive .vl-metric-value {
-  color: var(--vl-accent);
+  color: var(--vl-accent) !important;
 }
 
 .vl-profit-negative .vl-metric-value {
-  color: #b42318;
+  color: #b42318 !important;
 }
 
 #voiceledger-app button {
@@ -167,19 +187,26 @@ body,
 #voiceledger-app .primary {
   background: var(--vl-accent) !important;
   border-color: var(--vl-accent) !important;
+  color: #ffffff !important;
+}
+
+#voiceledger-app button.primary *,
+#voiceledger-app .primary * {
+  color: #ffffff !important;
 }
 
 #voiceledger-app button.primary:hover,
 #voiceledger-app .primary:hover {
   background: var(--vl-accent-strong) !important;
   border-color: var(--vl-accent-strong) !important;
+  color: #ffffff !important;
 }
 
 .vl-copy-button {
   background: var(--vl-text);
   border: 1px solid var(--vl-text);
   border-radius: 10px;
-  color: #ffffff;
+  color: #ffffff !important;
   cursor: pointer;
   font-weight: 700;
   margin-top: 8px;
@@ -277,6 +304,13 @@ body,
   border-radius: 12px !important;
   color: var(--vl-text) !important;
   overflow: hidden !important;
+}
+
+#voiceledger-app table *,
+#voiceledger-app td *,
+#voiceledger-app .dataframe td *,
+#voiceledger-app [data-testid="dataframe"] td * {
+  opacity: 1 !important;
 }
 
 #voiceledger-app th {
