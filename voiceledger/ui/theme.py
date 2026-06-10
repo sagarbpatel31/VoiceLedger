@@ -151,25 +151,33 @@ body,
   gap: 8px !important;
 }
 
-.vl-app-nav button {
+.vl-app-nav a {
   appearance: none !important;
   background: #eef6ed !important;
   border: 1px solid #b9d4b4 !important;
   border-radius: 999px !important;
   color: #183525 !important;
   cursor: pointer !important;
+  display: inline-flex !important;
   font-size: 14px !important;
   font-weight: 800 !important;
+  justify-content: center !important;
   line-height: 1 !important;
   min-height: 36px !important;
   padding: 8px 12px !important;
+  text-decoration: none !important;
   white-space: nowrap !important;
 }
 
-.vl-app-nav button:hover {
+.vl-app-nav a:hover {
   background: var(--vl-accent) !important;
   border-color: var(--vl-accent) !important;
   color: #ffffff !important;
+}
+
+.vl-page-anchor {
+  display: block !important;
+  scroll-margin-top: 14px !important;
 }
 
 .vl-panel,
@@ -428,10 +436,26 @@ body,
 }
 
 #voiceledger-app [role="tablist"] {
-  display: flex !important;
+  display: none !important;
   flex-wrap: wrap !important;
   gap: 4px !important;
   overflow: visible !important;
+}
+
+#voiceledger-app [role="tabpanel"] {
+  display: block !important;
+  height: auto !important;
+  opacity: 1 !important;
+  overflow: visible !important;
+  visibility: visible !important;
+}
+
+#voiceledger-app [role="tabpanel"][hidden],
+#voiceledger-app [role="tabpanel"][aria-hidden="true"] {
+  display: block !important;
+  height: auto !important;
+  opacity: 1 !important;
+  visibility: visible !important;
 }
 
 #voiceledger-app [role="tab"] {

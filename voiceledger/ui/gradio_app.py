@@ -85,6 +85,7 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
 
         with gr.Tabs(selected="record"):
             with gr.Tab("Record Text & Voice", id="record"):
+                gr.HTML('<div id="vl-page-record" class="vl-page-anchor"></div>')
                 gr.HTML(
                     _info_panel(
                         "Hackathon Demo Launchpad",
@@ -178,6 +179,8 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                 example_inventory_button.click(fn=lambda: "Bought 50 mangoes", inputs=None, outputs=note_input)
 
             with gr.Tab("Dashboard", id="dashboard"):
+                gr.HTML('<div id="vl-page-dashboard" class="vl-page-anchor"></div>')
+                gr.HTML(_section_heading("Dashboard"))
                 refresh_dashboard_button = gr.Button("Refresh Dashboard", variant="primary")
                 with gr.Row(elem_classes="vl-metric-grid"):
                     total_sales_output = gr.HTML()
@@ -228,6 +231,7 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                 )
 
             with gr.Tab("Demo Health", id="health"):
+                gr.HTML('<div id="vl-page-health" class="vl-page-anchor"></div>')
                 gr.HTML(
                     _info_panel(
                         "Demo Health",
@@ -259,6 +263,7 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                 )
 
             with gr.Tab("Submission Story", id="story"):
+                gr.HTML('<div id="vl-page-story" class="vl-page-anchor"></div>')
                 gr.HTML(
                     """
                     <section class="vl-info-panel">
@@ -273,6 +278,7 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                 seed_demo_status = gr.Markdown(elem_classes="vl-status")
 
             with gr.Tab("Bulk Import", id="bulk"):
+                gr.HTML('<div id="vl-page-bulk" class="vl-page-anchor"></div>')
                 gr.HTML(
                     _info_panel(
                         "Bulk Notes Import",
@@ -308,6 +314,7 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                 )
 
             with gr.Tab("Customer Credit", id="credit"):
+                gr.HTML('<div id="vl-page-credit" class="vl-page-anchor"></div>')
                 gr.HTML(
                     _info_panel(
                         "Customer Credit Book",
@@ -334,6 +341,7 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                 )
 
             with gr.Tab("Inventory", id="inventory"):
+                gr.HTML('<div id="vl-page-inventory" class="vl-page-anchor"></div>')
                 gr.HTML(
                     _info_panel(
                         "Inventory",
@@ -360,6 +368,7 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                 )
 
             with gr.Tab("Reports & PDF", id="reports"):
+                gr.HTML('<div id="vl-page-reports" class="vl-page-anchor"></div>')
                 gr.HTML(
                     _info_panel(
                         "Reports & PDF",
@@ -402,6 +411,7 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                 )
 
             with gr.Tab("Ledger", id="ledger"):
+                gr.HTML('<div id="vl-page-ledger" class="vl-page-anchor"></div>')
                 gr.HTML(
                     _info_panel(
                         "Ledger",
@@ -621,36 +631,26 @@ def _info_panel(title: str, body: str) -> str:
 
 def _navigation_bar() -> str:
     """Return the always-visible app navigation strip."""
-    labels = [
-        "Record Text & Voice",
-        "Dashboard",
-        "Demo Health",
-        "Submission Story",
-        "Bulk Import",
-        "Customer Credit",
-        "Inventory",
-        "Reports & PDF",
-        "Ledger",
+    links = [
+        ("Record Text & Voice", "record"),
+        ("Dashboard", "dashboard"),
+        ("Demo Health", "health"),
+        ("Submission Story", "story"),
+        ("Bulk Import", "bulk"),
+        ("Customer Credit", "credit"),
+        ("Inventory", "inventory"),
+        ("Reports & PDF", "reports"),
+        ("Ledger", "ledger"),
     ]
-    buttons = "\n".join(
-        f'<button type="button" onclick="window.voiceledgerOpenTab && window.voiceledgerOpenTab({label!r})">{label}</button>'
-        for label in labels
+    anchors = "\n".join(
+        f'<a href="#vl-page-{page_id}">{label}</a>'
+        for label, page_id in links
     )
     return f"""
     <nav class="vl-app-nav" aria-label="VoiceLedger sections">
       <strong>Sections</strong>
-      <div>{buttons}</div>
+      <div>{anchors}</div>
     </nav>
-    <script>
-      window.voiceledgerOpenTab = function(label) {{
-        const tabs = Array.from(document.querySelectorAll('#voiceledger-app [role="tab"], #voiceledger-app .tab-nav button'));
-        const target = tabs.find((tab) => (tab.textContent || '').trim() === label);
-        if (target) {{
-          target.click();
-          window.scrollTo({{ top: 0, behavior: 'smooth' }});
-        }}
-      }};
-    </script>
     """
 
 
