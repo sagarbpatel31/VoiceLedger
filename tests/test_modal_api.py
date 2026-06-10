@@ -53,6 +53,36 @@ def test_parse_transaction_uses_modal_response(monkeypatch) -> None:
     assert transaction.amount == 300
 
 
+def test_parse_transaction_result_reports_modal_source(monkeypatch) -> None:
+    monkeypatch.setenv(modal_api.MODAL_PARSE_URL_ENV, "https://modal.example/parse")
+
+    def fake_post(*args, **kwargs) -> FakeResponse:
+        return FakeResponse(
+            {
+                "transaction": {
+                    "transaction_type": "sale",
+                    "item": "mangoes",
+                    "quantity": 12,
+                    "unit_price": 20,
+                    "amount": 240,
+                    "customer": None,
+                    "payment_status": "paid",
+                    "notes": "Sold 12 mangoes, 20 each",
+                    "confidence": 0.97,
+                }
+            }
+        )
+
+    monkeypatch.setattr(modal_api.requests, "post", fake_post)
+
+    result = modal_api.parse_transaction_result("Sold 12 mangoes, 20 each", fallback=local_parse_transaction)
+
+    assert result.source == "modal"
+    assert "NVIDIA Nemotron" in result.message
+    assert result.fallback_reason is None
+    assert result.transaction.amount == 240
+
+
 def test_parse_transaction_falls_back_when_modal_errors(monkeypatch) -> None:
     monkeypatch.setenv(modal_api.MODAL_PARSE_URL_ENV, "https://modal.example/parse")
 
@@ -65,6 +95,22 @@ def test_parse_transaction_falls_back_when_modal_errors(monkeypatch) -> None:
 
     assert transaction.transaction_type == "sale"
     assert transaction.amount == 240
+
+
+def test_parse_transaction_result_reports_fallback_reason(monkeypatch) -> None:
+    monkeypatch.setenv(modal_api.MODAL_PARSE_URL_ENV, "https://modal.example/parse")
+
+    def fake_post(*args, **kwargs) -> None:
+        raise RuntimeError("network down")
+
+    monkeypatch.setattr(modal_api.requests, "post", fake_post)
+
+    result = modal_api.parse_transaction_result("mango 12 x 20", fallback=local_parse_transaction)
+
+    assert result.source == "local"
+    assert "after Modal failed" in result.message
+    assert "network down" in result.fallback_reason
+    assert result.transaction.amount == 240
 
 
 def test_transcribe_audio_uses_modal_response(tmp_path: Path, monkeypatch) -> None:
@@ -80,6 +126,23 @@ def test_transcribe_audio_uses_modal_response(tmp_path: Path, monkeypatch) -> No
     transcript = modal_api.transcribe_audio(audio_path, fallback=lambda _: "fallback")
 
     assert transcript == "Sold 12 mangoes"
+
+
+def test_transcribe_audio_result_reports_modal_source(tmp_path: Path, monkeypatch) -> None:
+    audio_path = tmp_path / "audio.wav"
+    audio_path.write_bytes(b"audio")
+    monkeypatch.setenv(modal_api.MODAL_TRANSCRIBE_URL_ENV, "https://modal.example/transcribe")
+
+    def fake_post(*args, **kwargs) -> FakeResponse:
+        return FakeResponse({"transcript": "Sold 12 mangoes"})
+
+    monkeypatch.setattr(modal_api.requests, "post", fake_post)
+
+    result = modal_api.transcribe_audio_result(audio_path, fallback=lambda _: "fallback")
+
+    assert result.source == "modal"
+    assert result.transcript == "Sold 12 mangoes"
+    assert result.fallback_reason is None
 
 
 def test_transcribe_audio_accepts_gradio_dict_payload(tmp_path: Path, monkeypatch) -> None:
@@ -105,3 +168,21 @@ def test_transcribe_audio_falls_back_when_url_missing(tmp_path: Path, monkeypatc
     transcript = modal_api.transcribe_audio(audio_path, fallback=lambda _: "fallback transcript")
 
     assert transcript == "fallback transcript"
+
+
+def test_get_modal_health_reports_version(monkeypatch) -> None:
+    monkeypatch.setenv(modal_api.MODAL_PARSE_URL_ENV, "https://modal.example/parse")
+
+    def fake_get(url: str, *args, **kwargs) -> FakeResponse:
+        if url.endswith("/health"):
+            return FakeResponse({"status": "ok"})
+        if url.endswith("/version"):
+            return FakeResponse({"version": "parse-starlette-route-v1"})
+        raise AssertionError(f"unexpected url: {url}")
+
+    monkeypatch.setattr(modal_api.requests, "get", fake_get)
+
+    health = modal_api.get_modal_health()
+
+    assert health["status"] == "ok"
+    assert health["version"] == "parse-starlette-route-v1"

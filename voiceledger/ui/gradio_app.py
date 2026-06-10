@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import os
+import sqlite3
 import tempfile
+from importlib.util import find_spec
 from pathlib import Path
 from typing import Any
 
@@ -56,12 +58,22 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
         with gr.Tabs(selected="record"):
             with gr.Tab("Record Text & Voice", id="record"):
                 gr.Markdown(
+                    "**Workflow:** Record or type → Parse → Review → Save",
+                    elem_classes="vl-status",
+                )
+                gr.Markdown(
                     """
                     **Example inputs:** `Sold 12 mangoes, 20 each` · `Paid 500 for supplies` ·
                     `Amit owes 100` · `Bought 50 mangoes`
                     """,
                     elem_classes="vl-status",
                 )
+                with gr.Row(elem_classes="vl-example-row"):
+                    example_sale_button = gr.Button("Try sale")
+                    example_expense_button = gr.Button("Try expense")
+                    example_credit_button = gr.Button("Try credit")
+                    example_payment_button = gr.Button("Try payment")
+                    example_inventory_button = gr.Button("Try inventory")
                 with gr.Row():
                     with gr.Column():
                         note_input = gr.Textbox(
@@ -87,7 +99,7 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                         )
 
                 with gr.Row():
-                    save_button = gr.Button("Save")
+                    save_button = gr.Button("Save reviewed transaction")
 
                 structured_output = gr.JSON(label="Structured output", elem_classes="vl-panel")
                 status_output = gr.Markdown(elem_classes="vl-status")
@@ -102,11 +114,11 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                     inputs=audio_input,
                     outputs=[transcript_output, structured_output, parsed_state, status_output],
                 )
-                save_button.click(
-                    fn=lambda transaction: _save_transaction(transaction, db_path),
-                    inputs=parsed_state,
-                    outputs=status_output,
-                )
+                example_sale_button.click(fn=lambda: "Sold 12 mangoes, 20 each", inputs=None, outputs=note_input)
+                example_expense_button.click(fn=lambda: "Paid 500 for supplies", inputs=None, outputs=note_input)
+                example_credit_button.click(fn=lambda: "Amit owes 100", inputs=None, outputs=note_input)
+                example_payment_button.click(fn=lambda: "Amit paid 50", inputs=None, outputs=note_input)
+                example_inventory_button.click(fn=lambda: "Bought 50 mangoes", inputs=None, outputs=note_input)
 
             with gr.Tab("Dashboard", id="dashboard"):
                 refresh_dashboard_button = gr.Button("Refresh Dashboard", variant="primary")
@@ -156,6 +168,27 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                         top_items_output,
                         low_stock_output,
                     ],
+                )
+
+            with gr.Tab("Demo Health", id="health"):
+                refresh_health_button = gr.Button("Refresh Demo Health", variant="primary")
+                health_output = gr.Dataframe(
+                    headers=["check", "status", "details"],
+                    label="System checks",
+                    interactive=False,
+                    wrap=True,
+                    elem_classes="vl-panel",
+                )
+                health_status_output = gr.Markdown(elem_classes="vl-status")
+                refresh_health_button.click(
+                    fn=lambda: _get_system_check(db_path),
+                    inputs=None,
+                    outputs=[health_output, health_status_output],
+                )
+                demo.load(
+                    fn=lambda: _get_system_check(db_path),
+                    inputs=None,
+                    outputs=[health_output, health_status_output],
                 )
 
             with gr.Tab("Bulk Import", id="bulk"):
@@ -299,28 +332,54 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                     outputs=ledger_output,
                 )
 
+        save_button.click(
+            fn=lambda transaction: _save_transaction_and_refresh(transaction, db_path),
+            inputs=parsed_state,
+            outputs=[
+                status_output,
+                total_sales_output,
+                total_expenses_output,
+                net_profit_output,
+                outstanding_credit_output,
+                top_selling_item_output,
+                top_items_output,
+                low_stock_output,
+                ledger_output,
+                customer_balances_output,
+                inventory_output,
+            ],
+        )
+
     return demo
 
 
 def _parse_note(note: str) -> tuple[dict[str, Any], dict[str, Any], str]:
     """Parse a note and return display data plus serializable state."""
-    transaction = modal_api.parse_transaction(note, fallback=local_parse_transaction)
+    result = modal_api.parse_transaction_result(note, fallback=local_parse_transaction)
+    transaction = result.transaction
     payload = transaction.model_dump()
-    status = _status_message(transaction)
+    status = _status_message(transaction, result.message, result.fallback_reason)
     return payload, payload, status
 
 
 def _transcribe_and_parse_audio(audio_path: Any) -> tuple[str, dict[str, Any], dict[str, Any] | None, str]:
     """Transcribe recorded audio, parse the transcript, and return UI updates."""
     try:
-        transcript = modal_api.transcribe_audio(audio_path, fallback=local_transcribe_audio)
+        transcription = modal_api.transcribe_audio_result(audio_path, fallback=local_transcribe_audio)
     except Exception as exc:
         empty_payload = _empty_transaction_payload()
         return "", empty_payload, None, f"Transcription failed: {exc}"
 
-    transaction = modal_api.parse_transaction(transcript, fallback=local_parse_transaction)
+    parse_result = modal_api.parse_transaction_result(transcription.transcript, fallback=local_parse_transaction)
+    transaction = parse_result.transaction
     payload = transaction.model_dump()
-    return transcript, payload, payload, _status_message(transaction)
+    status = _status_message(
+        transaction,
+        parse_result.message,
+        parse_result.fallback_reason,
+        prefix=_transcription_status(transcription),
+    )
+    return transcription.transcript, payload, payload, status
 
 
 def _save_transaction(transaction_payload: dict[str, Any] | None, db_path: str | Path | None) -> str:
@@ -330,7 +389,22 @@ def _save_transaction(transaction_payload: dict[str, Any] | None, db_path: str |
 
     transaction = Transaction(**transaction_payload)
     transaction_id = add_transaction(transaction, db_path)
-    return f"Saved transaction #{transaction_id}."
+    return f"Saved transaction #{transaction_id}: {_transaction_summary(transaction)}."
+
+
+def _save_transaction_and_refresh(
+    transaction_payload: dict[str, Any] | None,
+    db_path: str | Path | None,
+) -> tuple[str, str, str, str, str, str, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.io.formats.style.Styler]:
+    """Save a transaction and refresh the demo-critical data views."""
+    status = _save_transaction(transaction_payload, db_path)
+    return (
+        status,
+        *_get_dashboard_data(db_path),
+        get_transactions(db_path),
+        get_customer_balances(db_path),
+        _get_inventory_display(db_path),
+    )
 
 
 def _parse_bulk_notes_for_review(notes: str) -> tuple[pd.DataFrame, str]:
@@ -399,6 +473,64 @@ def _generate_daily_summary_report(db_path: str | Path | None) -> tuple[str | No
     return str(report_path), "Daily Summary PDF is ready."
 
 
+def _get_system_check(db_path: str | Path | None) -> tuple[pd.DataFrame, str]:
+    """Return lightweight health checks for demo readiness."""
+    checks: list[dict[str, str]] = []
+
+    modal_health = modal_api.get_modal_health()
+    checks.append(
+        {
+            "check": "Modal backend",
+            "status": modal_health["status"],
+            "details": f"{modal_health['message']} Version: {modal_health['version']}",
+        }
+    )
+
+    try:
+        resolved_db_path = initialize_database(db_path)
+        with sqlite3.connect(resolved_db_path) as connection:
+            connection.execute("SELECT 1").fetchone()
+        checks.append(
+            {
+                "check": "SQLite database",
+                "status": "ok",
+                "details": str(resolved_db_path),
+            }
+        )
+    except Exception as exc:
+        checks.append(
+            {
+                "check": "SQLite database",
+                "status": "error",
+                "details": str(exc),
+            }
+        )
+
+    fpdf_available = find_spec("fpdf") is not None
+    checks.append(
+        {
+            "check": "PDF export",
+            "status": "ok" if fpdf_available else "missing",
+            "details": "fpdf2 is installed." if fpdf_available else "Install fpdf2 to enable PDF reports.",
+        }
+    )
+
+    modal_parse_url = os.getenv(modal_api.MODAL_PARSE_URL_ENV)
+    modal_transcribe_url = os.getenv(modal_api.MODAL_TRANSCRIBE_URL_ENV)
+    checks.append(
+        {
+            "check": "Configured endpoints",
+            "status": "ok" if modal_parse_url and modal_transcribe_url else "partial",
+            "details": f"parse={'set' if modal_parse_url else 'missing'}, transcribe={'set' if modal_transcribe_url else 'missing'}",
+        }
+    )
+
+    status = "Demo health checks completed."
+    if any(row["status"] in {"error", "missing"} for row in checks):
+        status = "Some demo health checks need attention."
+    return pd.DataFrame(checks), status
+
+
 def _metric_card(label: str, value: str, note: str, profit: float | None = None) -> str:
     """Render a dashboard metric card."""
     tone = ""
@@ -442,8 +574,37 @@ def _empty_transaction_payload() -> dict[str, Any]:
     return Transaction().model_dump()
 
 
-def _status_message(transaction: Transaction) -> str:
+def _status_message(
+    transaction: Transaction,
+    source_message: str = "Parsed transaction.",
+    fallback_reason: str | None = None,
+    prefix: str | None = None,
+) -> str:
     """Return a human-readable parsing status."""
+    parts = []
+    if prefix:
+        parts.append(prefix)
+    parts.append(source_message)
+    if fallback_reason:
+        parts.append(f"Fallback reason: `{fallback_reason}`.")
+
     if transaction.transaction_type == "unknown":
-        return "Could not confidently parse this note. You can still inspect the structured output."
-    return f"Parsed as `{transaction.transaction_type}` with confidence `{transaction.confidence:.2f}`."
+        parts.append("Could not confidently parse this note. You can still inspect the structured output.")
+    else:
+        parts.append(f"Parsed as `{transaction.transaction_type}` with confidence `{transaction.confidence:.2f}`.")
+    return " ".join(parts)
+
+
+def _transcription_status(result: modal_api.TranscriptionResult) -> str:
+    """Return a concise transcription source status."""
+    status = result.message
+    if result.fallback_reason:
+        status += f" Fallback reason: `{result.fallback_reason}`."
+    return status
+
+
+def _transaction_summary(transaction: Transaction) -> str:
+    """Return a concise saved transaction summary."""
+    amount = _format_money(transaction.amount or 0) if transaction.amount is not None else "amount not set"
+    target = transaction.item or transaction.customer or "transaction"
+    return f"{transaction.transaction_type} for {target}, {amount}"

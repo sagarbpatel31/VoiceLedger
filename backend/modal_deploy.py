@@ -7,6 +7,7 @@ Deploy with:
 from __future__ import annotations
 
 import json
+import logging
 import os
 import tempfile
 from functools import lru_cache
@@ -18,6 +19,7 @@ import modal
 
 NEMOTRON_MODEL = os.getenv("NEMOTRON_MODEL", "nvidia/NVIDIA-Nemotron-3-Nano-4B")
 DEPLOYMENT_VERSION = "parse-starlette-route-v1"
+logger = logging.getLogger("voiceledger.modal")
 
 image = (
     modal.Image.debian_slim(python_version="3.11")
@@ -90,7 +92,12 @@ def api():
 
     async def parse(request) -> JSONResponse:
         text = await _extract_parse_text(request)
+        logger.info(
+            "voiceledger_parse_request",
+            extra={"text_length": len(text), "has_text": bool(text)},
+        )
         if not text:
+            logger.info("voiceledger_parse_empty")
             return JSONResponse({"transaction": Transaction(notes="", confidence=0.0).model_dump()})
 
         try:
@@ -99,8 +106,20 @@ def api():
             transaction = Transaction.model_validate(payload)
             if not transaction.notes:
                 transaction = transaction.model_copy(update={"notes": text})
-        except Exception:
+            logger.info(
+                "voiceledger_parse_model_success",
+                extra={"transaction_type": transaction.transaction_type, "confidence": transaction.confidence},
+            )
+        except Exception as exc:
             transaction = rule_parse_transaction(text)
+            logger.warning(
+                "voiceledger_parse_rule_fallback",
+                extra={
+                    "reason": f"{exc.__class__.__name__}: {exc}",
+                    "transaction_type": transaction.transaction_type,
+                    "confidence": transaction.confidence,
+                },
+            )
 
         return JSONResponse({"transaction": transaction.model_dump()})
 

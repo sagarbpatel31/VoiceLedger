@@ -158,6 +158,23 @@ body,
   background: #334033;
 }
 
+.vl-example-row {
+  gap: 8px !important;
+}
+
+.vl-example-row button,
+#voiceledger-app button.secondary {
+  background: var(--vl-surface) !important;
+  border: 1px solid var(--vl-border) !important;
+  color: var(--vl-text) !important;
+}
+
+.vl-example-row button:hover,
+#voiceledger-app button.secondary:hover {
+  border-color: var(--vl-accent) !important;
+  color: var(--vl-accent-strong) !important;
+}
+
 #voiceledger-app textarea,
 #voiceledger-app input,
 #voiceledger-app .wrap {
@@ -199,9 +216,16 @@ body,
 
 .vl-status,
 .vl-status p {
-  color: var(--vl-muted) !important;
+  color: var(--vl-text) !important;
   font-size: 14px !important;
   margin: 0 !important;
+}
+
+.vl-status {
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid var(--vl-border);
+  border-radius: 12px;
+  padding: 10px 12px !important;
 }
 
 @media (min-width: 760px) {

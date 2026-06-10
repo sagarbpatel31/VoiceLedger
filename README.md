@@ -20,7 +20,7 @@ The current version focuses on a clean, deterministic foundation:
 - Record a transaction with your microphone and transcribe it with faster-whisper.
 - Type or paste a transaction note.
 - Bulk import multiple pasted notes for review and editing.
-- Parse it with simple rules.
+- Parse it with Modal-hosted NVIDIA Nemotron when configured, with local rules as a deterministic fallback.
 - Save the structured transaction to SQLite.
 - View the ledger, customer credit book, and inventory in a Gradio interface.
 - Monitor business insights in a dashboard.
@@ -29,7 +29,7 @@ The current version focuses on a clean, deterministic foundation:
 - Generate a WhatsApp-ready daily business summary.
 - Offload speech transcription and LLM parsing to optional Modal endpoints.
 
-LLM parsing is intentionally not implemented yet.
+When Modal endpoints are configured, parsing runs through the Modal backend using `nvidia/NVIDIA-Nemotron-3-Nano-4B` via Hugging Face Inference. If Modal is unavailable or returns an invalid response, VoiceLedger falls back to the local rule parser for demo reliability.
 
 ## Example Inputs
 
@@ -91,13 +91,25 @@ export VOICELEDGER_DB_PATH=/path/to/voiceledger.sqlite3
 ## Run Tests
 
 ```bash
-pytest
+env PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python3 -m pytest
+```
+
+## Modal Backend Checks
+
+After deploying `backend/modal_deploy.py`, verify the live backend:
+
+```bash
+curl https://sagarpat3199--voiceledger-api.modal.run/health
+curl https://sagarpat3199--voiceledger-api.modal.run/version
+curl -X POST https://sagarpat3199--voiceledger-api.modal.run/parse \
+  -H "Content-Type: application/json" \
+  -d '{"text":"Sold 12 mangoes, 20 each"}'
 ```
 
 ## Notes
 
 - Speech transcription uses the faster-whisper `small` model and loads lazily on first use.
-- LLM parsing is not wired up yet.
+- LLM parsing is wired through the optional Modal backend using NVIDIA Nemotron, with rule parsing as fallback.
 - The parser is intentionally transparent and easy to extend for hackathon iteration.
 - Customer credit balances are updated when parsed customer credit or payment transactions are saved.
 - Inventory stock is updated when parsed inventory purchases or sales are saved.
@@ -107,5 +119,6 @@ pytest
 - WhatsApp summaries provide a short copyable daily recap for sharing.
 - Bulk import splits pasted notes by line, parses each line, supports review edits, and saves all reviewed transactions.
 - Modal integration lives in `backend/`; if endpoint URLs are not configured, local fallback stays active.
-- NVIDIA Nemotron 3 Nano 4B is available as a local `transformers` parser provider for strict JSON transaction extraction.
+- NVIDIA Nemotron 3 Nano 4B is used by the Modal parser endpoint and is also available as a local `transformers` parser provider for strict JSON transaction extraction.
+- The Demo Health tab checks Modal reachability, deployed backend version, SQLite availability, PDF support, and configured endpoint status.
 - The UI uses a custom theme, responsive spacing, and dashboard cards instead of the default Gradio look.

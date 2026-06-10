@@ -2,6 +2,7 @@ import pytest
 
 pytest.importorskip("gradio")
 
+from backend.modal_api import ParseResult, TranscriptionResult
 from voiceledger.ui import gradio_app
 
 
@@ -9,7 +10,7 @@ def test_transcribe_and_parse_audio_handles_transcription_error(monkeypatch) -> 
     def fail_transcription(_: object) -> str:
         raise RuntimeError("test failure")
 
-    monkeypatch.setattr(gradio_app.modal_api, "transcribe_audio", lambda audio, fallback: fail_transcription(audio))
+    monkeypatch.setattr(gradio_app.modal_api, "transcribe_audio_result", lambda audio, fallback: fail_transcription(audio))
 
     transcript, structured, state, status = gradio_app._transcribe_and_parse_audio("audio.wav")
 
@@ -22,13 +23,22 @@ def test_transcribe_and_parse_audio_handles_transcription_error(monkeypatch) -> 
 def test_transcribe_and_parse_audio_parses_transcript(monkeypatch) -> None:
     monkeypatch.setattr(
         gradio_app.modal_api,
-        "transcribe_audio",
-        lambda audio, fallback: "Sold 12 mangoes, 20 each",
+        "transcribe_audio_result",
+        lambda audio, fallback: TranscriptionResult(
+            transcript="Sold 12 mangoes, 20 each",
+            source="modal",
+            message="Transcribed by Modal faster-whisper endpoint.",
+        ),
     )
     monkeypatch.setattr(
         gradio_app.modal_api,
-        "parse_transaction",
-        lambda text, fallback: fallback(text),
+        "parse_transaction_result",
+        lambda text, fallback: ParseResult(
+            transaction=fallback(text),
+            source="local",
+            message="Parsed locally with the rule parser after Modal failed.",
+            fallback_reason="test fallback",
+        ),
     )
 
     transcript, structured, state, status = gradio_app._transcribe_and_parse_audio("audio.wav")
@@ -38,3 +48,23 @@ def test_transcribe_and_parse_audio_parses_transcript(monkeypatch) -> None:
     assert structured["amount"] == 240
     assert state == structured
     assert "sale" in status
+    assert "Modal faster-whisper" in status
+    assert "test fallback" in status
+
+
+def test_parse_note_surfaces_modal_source(monkeypatch) -> None:
+    monkeypatch.setattr(
+        gradio_app.modal_api,
+        "parse_transaction_result",
+        lambda text, fallback: ParseResult(
+            transaction=fallback(text),
+            source="modal",
+            message="Parsed by Modal using NVIDIA Nemotron.",
+        ),
+    )
+
+    structured, state, status = gradio_app._parse_note("Paid 500 for supplies")
+
+    assert structured["transaction_type"] == "expense"
+    assert state == structured
+    assert "NVIDIA Nemotron" in status
