@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any
 
 import modal
+from fastapi import Request
 
 
 NEMOTRON_MODEL = os.getenv("NEMOTRON_MODEL", "nvidia/NVIDIA-Nemotron-3-Nano-4B")
@@ -42,7 +43,7 @@ app = modal.App("voiceledger-backend")
 @modal.asgi_app(label="voiceledger-api")
 def api():
     """Serve VoiceLedger Modal API routes."""
-    from fastapi import FastAPI, File, HTTPException, Request, UploadFile
+    from fastapi import FastAPI, File, HTTPException, UploadFile
 
     from voiceledger.parser.llm_parser import SYSTEM_PROMPT
     from voiceledger.parser.rules import parse_transaction as rule_parse_transaction
