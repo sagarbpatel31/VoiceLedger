@@ -16,7 +16,7 @@ On the first screen, show the `Judge Demo Flow` panel:
 
 Click `Seed Demo Transactions`.
 
-Show `Seller Setup` and mention that business name, currency, low-stock threshold, and language style are saved in SQLite.
+Show `Seller Setup` and mention that business name, currency preset, low-stock threshold, and language style are saved in SQLite.
 
 Show the first-run guide and multilingual examples so judges see English, Hinglish, Gujarati-lite, Spanish, French, and Portuguese seller notes.
 
@@ -50,7 +50,9 @@ Click parse. Show:
 - Inline review fields for correcting item, quantity, amount, customer, and notes before saving
 - Warning badges for low confidence, missing fields, duplicate risk, or negative stock when present
 - Parse source/status
+- Language/confidence chip for multilingual notes
 - Command Center update
+- Voice command shortcuts such as `close today`, `show Amit`, and `stock mangoes`
 - “Saved just now” receipt with stock, customer, or amount side effects
 
 ## 0:45-1:05 — Bookkeeping Updates
@@ -71,13 +73,13 @@ In `Ledger`, load a transaction by id, update or delete it, and show balances re
 
 Click `Download CSV`.
 
-Open `Reports & PDF`, run `Daily Closeout`, then generate the PDF, WhatsApp summary, and CSV export.
+Open `Reports & PDF`, run `Daily Closeout`, then generate the PDF, translated WhatsApp summary, and CSV export.
 
 Suggested screenshot/GIF moments:
 
 - Record flow: first-run guide, multilingual examples, review card, inline correction, parse source, warning badges, save receipt.
 - Seller setup: currency/threshold/language style and Command Center.
-- Field Test: seller checklist and feedback notes.
+- Field Test: seller checklist, feedback notes, and correction log.
 - Submission Story: AI pipeline and small-model fit card.
 - Dashboard: sales, expenses, profit, credit, timeline, top item, low-stock inventory.
 - Reports/Ledger: Daily Closeout, PDF download, WhatsApp summary, CSV export.

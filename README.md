@@ -19,13 +19,16 @@ The submission version is feature-frozen around the complete demo loop:
 
 - Record a transaction with your microphone and transcribe it with faster-whisper.
 - Configure seller context: business name, currency label, low-stock threshold, and language style.
+- Pick common currency presets for INR, USD, EUR, GBP, MXN, and BRL, or enter a custom currency label.
 - Use a first-run “Start in 60 seconds” guide for setup, first transaction, review, and closeout.
 - Type or paste a transaction note.
 - Bulk import multiple pasted notes for review and editing.
 - Parse it with Modal-hosted NVIDIA Nemotron when configured, with local rules as a deterministic fallback.
 - Parse common English, Hinglish, Hindi-lite, Gujarati-lite, Spanish, French, and Portuguese seller phrases with deterministic fallback rules.
 - Review a human-friendly transaction card with warning badges before saving.
+- See a language/confidence chip after parsing so multilingual notes are visibly handled.
 - Correct transaction type, item, customer, quantity, price, amount, notes, and confidence directly before saving.
+- Keep a correction log for review edits so model/rule mistakes become visible field-test evidence.
 - Choose `Cloud AI first` or `Local fallback only` from the Record screen to make the AI route explicit during demos.
 - Save the structured transaction to SQLite.
 - See a “Saved just now” receipt with bookkeeping side effects.
@@ -34,7 +37,8 @@ The submission version is feature-frozen around the complete demo loop:
 - Use a mobile-first, business-style Gradio interface with custom styling.
 - Run a Daily Closeout that prepares PDF, WhatsApp summary, and CSV exports together.
 - Download a Daily Summary PDF report.
-- Generate a WhatsApp-ready daily business summary.
+- Generate WhatsApp-ready daily business summaries in English, Spanish, French, or Portuguese.
+- Run shortcut commands like `close today`, `show Amit`, or `stock mangoes`.
 - Generate customer follow-up reminders and an inventory reorder list.
 - Capture field-test evidence with a seller checklist and anonymized feedback notes.
 - Offload speech transcription and LLM parsing to optional Modal endpoints.
@@ -106,7 +110,7 @@ The same examples are available in `sample_data/demo_transactions.txt`.
 2. Use the `Hackathon Demo Launchpad` on the first screen to seed demo transactions.
 3. Open `Record Text & Voice`, speak or type `Sold 12 mangoes, 20 each`, parse it, and review the human-readable transaction card.
 4. Correct one inline review field before saving, such as quantity or amount, to show the seller correction loop.
-5. Show the parse status and warning badges: Modal/NVIDIA Nemotron when available, local fallback when needed.
+5. Show the parse status, language/confidence chip, and warning badges: Modal/NVIDIA Nemotron when available, local fallback when needed.
 6. Save the transaction and show the Command Center plus the receipt with stock, customer, or amount side effects.
 7. Open `Dashboard`, `Customer Credit`, and `Inventory` to show the Insight Coach, timeline charts, customer detail, follow-up message, inventory detail, reorder list, and automatic bookkeeping updates.
 8. Open `Field Test` to show what a seller tried and what changed after feedback.
@@ -196,10 +200,14 @@ curl -X POST https://sagarpat3199--voiceledger-api.modal.run/parse \
 - Smart review warnings flag low confidence, missing fields, duplicate risk, and negative stock before save.
 - Inline review editing lets sellers correct the parsed transaction before the save touches the ledger.
 - Seller setup persists business name, currency label, low-stock threshold, and language style in SQLite.
+- Currency presets make the app easier to demo for INR, USD, EUR, GBP, MXN, BRL, and custom local labels.
 - Field Test persists anonymized seller evidence and a workflow checklist in SQLite.
+- The Field Test mistake log records corrected fields before save so product feedback is visible.
 - Local fallback rules include common English, Hinglish, Hindi-lite, Gujarati-lite, Spanish, French, and Portuguese seller notes.
+- Parse status includes a lightweight language/confidence chip for multilingual seller notes.
 - Customer follow-up and inventory reorder helpers generate WhatsApp-ready action messages.
-- WhatsApp summaries provide a short copyable daily recap for sharing.
+- WhatsApp summaries provide short copyable daily recaps in English, Spanish, French, or Portuguese.
+- Voice command shortcuts provide quick access to daily closeout, customer detail, and inventory detail.
 - Bulk import splits pasted notes by line, parses each line, supports review edits, and saves all reviewed transactions.
 - Modal integration lives in `backend/`; if endpoint URLs are not configured, local fallback stays active.
 - The Record screen includes a local-only AI mode that skips Modal while preserving the same transaction review and save flow.

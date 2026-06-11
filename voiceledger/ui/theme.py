@@ -637,6 +637,23 @@ body,
   color: #5f370e !important;
 }
 
+.vl-status-chip-language {
+  background: #f0eaff !important;
+  border-color: #bda8ef !important;
+  color: #43236d !important;
+}
+
+.vl-detail-card pre {
+  background: #f6f7f2 !important;
+  border: 1px solid var(--vl-border) !important;
+  border-radius: 10px !important;
+  color: var(--vl-text) !important;
+  font-size: 13px !important;
+  overflow-x: auto !important;
+  padding: 10px !important;
+  white-space: pre-wrap !important;
+}
+
 .vl-chip {
   background: #2c2926 !important;
   border-radius: 6px !important;

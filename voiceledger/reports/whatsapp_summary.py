@@ -23,8 +23,10 @@ def generate_whatsapp_summary(
     low_stock_threshold: float = 5,
     business_name: str = "VoiceLedger",
     currency_symbol: str = "₹",
+    language: str = "English",
 ) -> str:
     """Generate a concise daily summary suitable for WhatsApp sharing."""
+    labels = _summary_labels(language)
     sales = calculate_daily_sales(db_path=db_path, report_date=report_date)
     expenses = calculate_daily_expenses(db_path=db_path, report_date=report_date)
     profit = calculate_net_profit(db_path=db_path, report_date=report_date)
@@ -34,16 +36,16 @@ def generate_whatsapp_summary(
 
     return "\n".join(
         [
-            f"{business_name} Daily Summary",
+            f"{business_name} {labels['daily_summary']}",
             "",
-            f"Sales: {_format_money(sales, currency_symbol)}",
-            f"Expenses: {_format_money(expenses, currency_symbol)}",
-            f"Profit: {_format_money(profit, currency_symbol)}",
+            f"{labels['sales']}: {_format_money(sales, currency_symbol)}",
+            f"{labels['expenses']}: {_format_money(expenses, currency_symbol)}",
+            f"{labels['profit']}: {_format_money(profit, currency_symbol)}",
             "",
-            f"Outstanding Credit: {_format_money(credit, currency_symbol)}",
+            f"{labels['outstanding_credit']}: {_format_money(credit, currency_symbol)}",
             "",
-            f"Top Product: {top_product}",
-            f"Low Stock: {low_stock}",
+            f"{labels['top_product']}: {top_product}",
+            f"{labels['low_stock']}: {low_stock}",
         ]
     )
 
@@ -68,3 +70,47 @@ def _format_money(value: float, currency_symbol: str) -> str:
     if amount.is_integer():
         return f"{currency_symbol}{int(amount)}"
     return f"{currency_symbol}{amount:,.2f}"
+
+
+def _summary_labels(language: str) -> dict[str, str]:
+    """Return localized labels for a WhatsApp daily summary."""
+    normalized = (language or "English").strip().lower()
+    labels = {
+        "english": {
+            "daily_summary": "Daily Summary",
+            "sales": "Sales",
+            "expenses": "Expenses",
+            "profit": "Profit",
+            "outstanding_credit": "Outstanding Credit",
+            "top_product": "Top Product",
+            "low_stock": "Low Stock",
+        },
+        "spanish": {
+            "daily_summary": "Resumen Diario",
+            "sales": "Ventas",
+            "expenses": "Gastos",
+            "profit": "Ganancia",
+            "outstanding_credit": "Credito Pendiente",
+            "top_product": "Producto Principal",
+            "low_stock": "Bajo Stock",
+        },
+        "french": {
+            "daily_summary": "Resume Quotidien",
+            "sales": "Ventes",
+            "expenses": "Depenses",
+            "profit": "Profit",
+            "outstanding_credit": "Credit En Attente",
+            "top_product": "Meilleur Produit",
+            "low_stock": "Stock Bas",
+        },
+        "portuguese": {
+            "daily_summary": "Resumo Diario",
+            "sales": "Vendas",
+            "expenses": "Despesas",
+            "profit": "Lucro",
+            "outstanding_credit": "Credito Pendente",
+            "top_product": "Produto Principal",
+            "low_stock": "Estoque Baixo",
+        },
+    }
+    return labels.get(normalized, labels["english"])

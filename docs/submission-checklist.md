@@ -17,13 +17,16 @@
 - `Demo Health` shows Modal reachable and backend version.
 - `Demo Health` shows NVIDIA Nemotron parser status.
 - Seller Setup saves business name, currency label, low-stock threshold, and language style.
+- Currency preset updates the currency label for INR, USD, EUR, GBP, MXN, and BRL.
 - Text parse works with `Sold 12 mangoes, 20 each`.
 - Local fallback parses `Amit ne 100 dene hai`, `Amit ne 50 diya`, and `50 mango kharida`.
 - Voice parse works and transcript appears.
 - Review card shows type, item, quantity, price, amount, customer, source, and confidence.
+- Parse status shows source plus language/confidence.
 - Smart warnings appear for low confidence, missing fields, duplicate risk, and negative stock.
 - Save shows a receipt with transaction type, amount, and side effects.
 - Command Center updates after save and seed.
+- Voice command shortcuts work for `close today`, `show Amit`, and `stock mangoes`.
 - Save updates Dashboard and Ledger.
 - Dashboard timeline loads from saved transactions.
 - Seller-day timeline shows recent saved transactions.
@@ -37,7 +40,8 @@
 - CSV export downloads from Ledger.
 - Daily Closeout generates PDF, CSV, WhatsApp summary, and a status line.
 - PDF report downloads from Reports.
-- WhatsApp summary generates copyable text.
+- WhatsApp summary generates copyable text in English, Spanish, French, and Portuguese.
+- Field Test correction log shows edited review fields.
 
 ## Prize Alignment
 

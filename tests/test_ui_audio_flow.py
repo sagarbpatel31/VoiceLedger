@@ -97,6 +97,23 @@ def test_parse_note_local_mode_surfaces_local_fallback(monkeypatch) -> None:
     assert "Safe to save" in review_card
 
 
+def test_parse_note_surfaces_language_confidence_chip(monkeypatch) -> None:
+    monkeypatch.setattr(
+        gradio_app.modal_api,
+        "parse_transaction_result",
+        lambda text, fallback, **kwargs: ParseResult(
+            transaction=fallback(text),
+            source="local",
+            message="Parsed locally with the rule parser.",
+        ),
+    )
+
+    _, _, status, _ = gradio_app._parse_note("Vendí 12 mangos, 20 cada uno")
+
+    assert "Spanish" in status
+    assert "High confidence" in status
+
+
 def test_high_contrast_demo_panels_are_rendered() -> None:
     panel = gradio_app._info_panel(
         "Demo Health",
@@ -210,6 +227,9 @@ def test_apply_review_edits_updates_payload_and_review_card(tmp_path) -> None:
     assert state == payload
     assert "Review updated" in status
     assert "250" in review_card
+    correction_log = gradio_app.get_correction_log(db_path)
+    assert len(correction_log) == 1
+    assert "quantity" in correction_log.iloc[0]["changed_fields"]
 
 
 def test_receipt_card_summarizes_saved_sale(tmp_path) -> None:
@@ -265,6 +285,18 @@ def test_customer_followup_and_reorder_helpers(tmp_path) -> None:
     assert "₹60" in followup
     assert "onions" in set(reorder["item"])
     assert "Onions" in message
+
+
+def test_currency_presets_and_voice_commands(tmp_path) -> None:
+    db_path = tmp_path / "voiceledger.sqlite3"
+    gradio_app.add_transaction(gradio_app.local_parse_transaction("Amit owes 100"), db_path)
+    gradio_app.add_transaction(gradio_app.local_parse_transaction("Bought 3 onions"), db_path)
+
+    assert gradio_app._currency_symbol_for_preset("Brazil - BRL (R$)") == "R$"
+    assert gradio_app._currency_preset_for_symbol("€") == "European Union - EUR (€)"
+    assert "Amit" in gradio_app._run_voice_command("show Amit", db_path)
+    assert "onions" in gradio_app._run_voice_command("stock onions", db_path)
+    assert "Daily Closeout Ready" in gradio_app._run_voice_command("close today", db_path)
 
 
 def test_insight_coach_surfaces_credit_and_stock_actions(tmp_path) -> None:

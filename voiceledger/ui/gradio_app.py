@@ -28,6 +28,7 @@ from voiceledger.ledger.analytics import (
     top_selling_items,
 )
 from voiceledger.ledger.customers import get_customer_balances
+from voiceledger.ledger.corrections import get_correction_log, record_correction
 from voiceledger.ledger.database import (
     add_transaction,
     delete_transaction,
@@ -68,6 +69,16 @@ LANGUAGE_STYLE_CHOICES = [
     "Portuguese",
     "Multilingual",
 ]
+WHATSAPP_LANGUAGE_CHOICES = ["English", "Spanish", "French", "Portuguese"]
+CURRENCY_PRESETS = {
+    "India - INR (₹)": "₹",
+    "United States - USD ($)": "$",
+    "European Union - EUR (€)": "€",
+    "United Kingdom - GBP (£)": "£",
+    "Mexico - MXN ($)": "$",
+    "Brazil - BRL (R$)": "R$",
+    "Custom": "",
+}
 DEMO_NOTES = [
     "Bought 60 mangoes",
     "Sold 12 mangoes, 20 each",
@@ -128,11 +139,22 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                         value=initial_settings["business_name"],
                         elem_classes="vl-panel",
                     )
+                    currency_preset_input = gr.Dropdown(
+                        choices=list(CURRENCY_PRESETS.keys()),
+                        label="Currency preset",
+                        value=_currency_preset_for_symbol(initial_settings["currency_symbol"]),
+                        elem_classes="vl-panel",
+                    )
                     currency_symbol_input = gr.Textbox(
                         label="Currency label",
                         value=initial_settings["currency_symbol"],
                         elem_classes="vl-panel",
                     )
+                currency_preset_input.change(
+                    fn=_currency_symbol_for_preset,
+                    inputs=currency_preset_input,
+                    outputs=currency_symbol_input,
+                )
                 with gr.Row():
                     low_stock_threshold_input = gr.Number(
                         label="Low-stock threshold",
@@ -186,6 +208,15 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                 gr.HTML(
                     _multilingual_examples_panel()
                 )
+                gr.HTML(_section_heading("Voice Command Shortcuts"))
+                with gr.Row():
+                    command_input = gr.Textbox(
+                        label="Command",
+                        placeholder="close today, show Amit, stock mangoes",
+                        elem_classes="vl-panel",
+                    )
+                    command_button = gr.Button("Run Command")
+                command_output = gr.HTML(_empty_detail_card("Command result", "Try close today, show Amit, or stock mangoes."))
                 with gr.Row(elem_classes="vl-example-row"):
                     example_sale_button = gr.Button("Try sale")
                     example_expense_button = gr.Button("Try expense")
@@ -297,6 +328,11 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                     fn=lambda: ("Sold 12 mangoes, 20 each", "Start by typing or recording one transaction, then parse and review it."),
                     inputs=None,
                     outputs=[note_input, record_demo_status],
+                )
+                command_button.click(
+                    fn=lambda command: _run_voice_command(command, db_path),
+                    inputs=command_input,
+                    outputs=command_output,
                 )
                 apply_review_edits_button.click(
                     fn=lambda parsed, transaction_type, item, quantity, unit_price, amount, customer, payment_status, notes, confidence: _apply_review_edits(
@@ -505,6 +541,21 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                     value=_field_test_summary(initial_settings),
                     elem_classes="vl-status",
                 )
+                gr.HTML(_section_heading("Mistake Log"))
+                refresh_corrections_button = gr.Button("Refresh Correction Log")
+                correction_log_output = gr.Dataframe(
+                    value=get_correction_log(db_path),
+                    headers=["id", "changed_fields", "original_payload", "corrected_payload", "created_at"],
+                    label="Corrections made before save",
+                    interactive=False,
+                    wrap=True,
+                    elem_classes="vl-panel",
+                )
+                refresh_corrections_button.click(
+                    fn=lambda: get_correction_log(db_path),
+                    inputs=None,
+                    outputs=correction_log_output,
+                )
 
         with gr.Column(visible=False, elem_classes="vl-page-section") as bulk_page:
                 gr.HTML('<div id="vl-page-bulk" class="vl-page-anchor"></div>')
@@ -700,6 +751,12 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                 )
                 gr.HTML(_section_heading("WhatsApp Summary"))
                 generate_whatsapp_button = gr.Button("Generate WhatsApp Summary")
+                whatsapp_language_input = gr.Dropdown(
+                    choices=WHATSAPP_LANGUAGE_CHOICES,
+                    label="Summary language",
+                    value="English",
+                    elem_classes="vl-panel",
+                )
                 whatsapp_summary_output = gr.Textbox(
                     label="WhatsApp Summary",
                     lines=10,
@@ -717,8 +774,8 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                     """
                 )
                 generate_whatsapp_button.click(
-                    fn=lambda: _generate_whatsapp_summary(db_path),
-                    inputs=None,
+                    fn=lambda language: _generate_whatsapp_summary(db_path, language),
+                    inputs=whatsapp_language_input,
                     outputs=whatsapp_summary_output,
                 )
 
@@ -1249,6 +1306,20 @@ def _ai_mode_status(ai_mode: str | None) -> str:
     """
 
 
+def _currency_symbol_for_preset(preset: str | None) -> str:
+    """Return the currency symbol for a selected preset."""
+    return CURRENCY_PRESETS.get(preset or "Custom", "")
+
+
+def _currency_preset_for_symbol(symbol: str | None) -> str:
+    """Return a likely currency preset for an existing symbol."""
+    cleaned = (symbol or "").strip()
+    for preset, preset_symbol in CURRENCY_PRESETS.items():
+        if preset != "Custom" and preset_symbol == cleaned:
+            return preset
+    return "Custom"
+
+
 def _demo_health_placeholder() -> pd.DataFrame:
     """Return placeholder health rows so the demo health table is never blank."""
     return pd.DataFrame(
@@ -1395,6 +1466,7 @@ def _apply_review_edits(
         confidence=confidence,
     )
     payload = transaction.model_dump()
+    record_correction(transaction_payload, payload, db_path)
     warnings = _review_warnings(transaction, db_path)
     status = _status_message(transaction, "Review updated from your edits.", warnings=warnings)
     return payload, payload, status, _review_card(transaction, "Review updated from your edits.", warnings)
@@ -1946,6 +2018,36 @@ def _get_inventory_detail(item: str | None, db_path: str | Path | None) -> tuple
     return summary, matches[columns].reset_index(drop=True)
 
 
+def _run_voice_command(command: str | None, db_path: str | Path | None) -> str:
+    """Run a lightweight text/voice command shortcut."""
+    cleaned = " ".join(str(command or "").split()).strip()
+    if not cleaned:
+        return _empty_detail_card("Command result", "Try close today, show Amit, or stock mangoes.")
+
+    lowered = cleaned.lower()
+    if lowered in {"close today", "daily closeout", "closeout", "summary"}:
+        summary, pdf_path, csv_path, whatsapp, status = _run_daily_closeout(db_path)
+        file_note = f"PDF: {pdf_path or 'needs attention'}. CSV: {csv_path or 'needs attention'}."
+        return f"{summary}<section class=\"vl-detail-card\"><h2>Command result</h2><p>{escape(status)} {escape(file_note)}</p><pre>{escape(whatsapp)}</pre></section>"
+
+    if lowered.startswith(("show ", "customer ")):
+        customer = cleaned.split(" ", 1)[1] if " " in cleaned else ""
+        summary, _ = _get_customer_detail(customer, db_path)
+        return summary
+
+    if lowered.startswith(("stock ", "inventory ")):
+        item = cleaned.split(" ", 1)[1] if " " in cleaned else ""
+        summary, _ = _get_inventory_detail(item, db_path)
+        return summary
+
+    parsed = local_parse_transaction(cleaned)
+    if parsed.transaction_type != "unknown":
+        warnings = _review_warnings(parsed, db_path)
+        return _review_card(parsed, "Command parsed as a transaction. Copy it into the transaction note to save.", warnings)
+
+    return _empty_detail_card("Command result", "Command not recognized. Try close today, show Amit, stock mangoes, or a transaction note.")
+
+
 def _generate_daily_summary_report(db_path: str | Path | None) -> tuple[str | None, str]:
     """Generate the Daily Summary PDF for download in Gradio."""
     settings = get_business_settings(db_path)
@@ -2093,7 +2195,7 @@ def _metric_card(label: str, value: str, note: str, profit: float | None = None)
     """
 
 
-def _generate_whatsapp_summary(db_path: str | Path | None) -> str:
+def _generate_whatsapp_summary(db_path: str | Path | None, language: str = "English") -> str:
     """Generate a WhatsApp summary using seller settings."""
     settings = get_business_settings(db_path)
     return generate_whatsapp_summary(
@@ -2101,6 +2203,7 @@ def _generate_whatsapp_summary(db_path: str | Path | None) -> str:
         low_stock_threshold=get_low_stock_threshold(db_path),
         business_name=settings["business_name"],
         currency_symbol=settings["currency_symbol"],
+        language=language,
     )
 
 
@@ -2327,6 +2430,7 @@ def _status_message(
     """Return a human-readable parsing status."""
     parts = []
     parts.append(_source_chip(source_message, fallback_reason))
+    parts.append(_language_confidence_chip(transaction))
     if prefix:
         parts.append(prefix)
     parts.append(source_message)
@@ -2349,6 +2453,29 @@ def _source_chip(source_message: str, fallback_reason: str | None = None) -> str
     if "modal" in source_message.lower() or "nemotron" in source_message.lower():
         return '<span class="vl-status-chip vl-status-chip-cloud">Cloud AI</span>'
     return '<span class="vl-status-chip">Parsed</span>'
+
+
+def _language_confidence_chip(transaction: Transaction) -> str:
+    """Return a compact language/confidence chip for parse status."""
+    language = _detect_note_language(transaction.notes)
+    confidence_label = "High confidence" if transaction.confidence >= 0.85 else "Needs review"
+    return f'<span class="vl-status-chip vl-status-chip-language">{escape(language)} · {confidence_label}</span>'
+
+
+def _detect_note_language(note: str | None) -> str:
+    """Detect a lightweight language label from common seller note phrases."""
+    text = (note or "").lower()
+    if any(token in text for token in ("vendí", "pagué", " debe ", " pagó", " cada uno", "suministros")):
+        return "Spanish"
+    if any(token in text for token in ("vendu", "payé", " doit ", " a payé", "chacun", "fournitures", "acheté")):
+        return "French"
+    if any(token in text for token in ("vendi", "paguei", " deve ", "pagou", "suprimentos", "comprei")):
+        return "Portuguese"
+    if any(token in text for token in ("dene hai", "dena hai", "diya", "kharida", "chukaya")):
+        return "Hinglish"
+    if any(token in text for token in ("lidha", "aapva che", "apvana che", "aapya")):
+        return "Gujarati-lite"
+    return "English"
 
 
 def _transcription_status(result: modal_api.TranscriptionResult) -> str:

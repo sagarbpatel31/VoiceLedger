@@ -50,8 +50,9 @@ The hackathon version is intentionally frozen around the complete bookkeeping lo
 - Voice and text capture.
 - Modal/Nemotron parsing with local rule fallback.
 - Seller setup for business name, currency, low-stock threshold, and language style.
+- Currency presets and translated WhatsApp summaries for sellers who demo in INR, USD, EUR, GBP, MXN, BRL, English, Spanish, French, or Portuguese contexts.
 - Hinglish/Hindi-lite/Gujarati-lite/Spanish/French/Portuguese fallback examples for common seller notes.
-- First-run onboarding, multilingual examples, human-friendly review cards, inline review correction, warning badges, receipts, and save feedback.
+- First-run onboarding, multilingual examples, language/confidence chips, human-friendly review cards, inline review correction, mistake logging, warning badges, receipts, and save feedback.
 - Command Center, dashboard timeline, seller-day timeline, customer follow-up, inventory reorder list, ledger correction, Daily Closeout, PDF, CSV, and WhatsApp exports.
 - Field Test Mode for the seller checklist and anonymized “who/tried/changed” feedback evidence.
 - Demo Health for backend observability.
@@ -61,13 +62,13 @@ This freeze keeps the demo reliable and makes the value proposition easier to ju
 
 ## What We Learned
 
-The strongest product behavior is not the model call itself. It is the reliable loop around it: voice input, readable review, warning badges, save receipt, correction, and export. Informal sellers need speed, but they also need a way to spot mistakes and fix them. Edit/delete, detail drilldowns, Daily Closeout, and CSV export make the app credible as a bookkeeping tool instead of a parser demo.
+The strongest product behavior is not the model call itself. It is the reliable loop around it: voice input, readable review, warning badges, save receipt, correction, and export. Informal sellers need speed, but they also need a way to spot mistakes and fix them. The correction log makes those mistakes measurable during field tests, while edit/delete, detail drilldowns, Daily Closeout, and CSV export make the app credible as a bookkeeping tool instead of a parser demo.
 
 The small-model constraint helped keep the app honest. The model handles the fuzzy human input; the code owns the accounting state.
 
 ## Screenshot Moments
 
-- Record flow: first-run onboarding, multilingual examples, review card, inline corrections, warning badges, source/status, save receipt.
+- Record flow: first-run onboarding, multilingual examples, language/confidence chip, voice command shortcuts, review card, inline corrections, warning badges, source/status, save receipt.
 - Dashboard: daily totals, Insight Coach, outstanding credit, sales/expense timeline, top seller, low-stock inventory.
-- Field Test: workflow checklist and anonymized feedback evidence.
+- Field Test: workflow checklist, correction log, and anonymized feedback evidence.
 - Reports and exports: Daily Closeout, PDF download, WhatsApp summary, CSV ledger export.

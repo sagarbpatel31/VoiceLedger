@@ -35,3 +35,19 @@ def test_generate_whatsapp_summary_handles_empty_data(tmp_path: Path) -> None:
     assert "Outstanding Credit: ₹0" in summary
     assert "Top Product: None" in summary
     assert "Low Stock: None" in summary
+
+
+def test_generate_whatsapp_summary_supports_language_labels(tmp_path: Path) -> None:
+    db_path = tmp_path / "voiceledger.sqlite3"
+    add_transaction(parse_transaction("Vendí 12 mangos, 20 cada uno"), db_path)
+
+    spanish = generate_whatsapp_summary(db_path=db_path, language="Spanish", currency_symbol="$")
+    french = generate_whatsapp_summary(db_path=db_path, language="French", currency_symbol="€")
+    portuguese = generate_whatsapp_summary(db_path=db_path, language="Portuguese", currency_symbol="R$")
+
+    assert "Resumen Diario" in spanish
+    assert "Ventas: $240" in spanish
+    assert "Resume Quotidien" in french
+    assert "Ventes: €240" in french
+    assert "Resumo Diario" in portuguese
+    assert "Vendas: R$240" in portuguese
