@@ -95,6 +95,7 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                 nav_dashboard_button = gr.Button("Dashboard")
                 nav_health_button = gr.Button("Demo Health")
                 nav_story_button = gr.Button("Submission Story")
+                nav_field_test_button = gr.Button("Field Test")
                 nav_bulk_button = gr.Button("Bulk Import")
                 nav_credit_button = gr.Button("Customer Credit")
                 nav_inventory_button = gr.Button("Inventory")
@@ -109,6 +110,7 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                         "Use the Sections buttons above to open each workflow page. VoiceLedger is locked for the hackathon demo: core bookkeeping is frozen, with Modal/Nemotron active and local fallback ready.",
                     )
                 )
+                gr.HTML(_first_run_onboarding_panel())
                 command_center_output = gr.HTML(_command_center(db_path))
                 gr.HTML(_section_heading("Seller Setup"))
                 with gr.Row():
@@ -150,6 +152,7 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                 ai_mode_input.change(fn=_ai_mode_status, inputs=ai_mode_input, outputs=ai_mode_status_output)
                 gr.HTML(_judge_demo_panel())
                 gr.HTML(_today_work_panel())
+                start_today_button = gr.Button("Start Today", variant="primary")
                 with gr.Row():
                     record_seed_demo_button = gr.Button("Seed Demo Transactions", variant="primary")
                     record_health_button = gr.Button("Check Demo Health")
@@ -172,17 +175,7 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                     )
                 )
                 gr.HTML(
-                    """
-                    <section class="vl-info-panel">
-                      <h2>Example inputs</h2>
-                      <p>
-                        <span class="vl-chip">Sold 12 mangoes, 20 each</span>
-                        <span class="vl-chip">Paid 500 for supplies</span>
-                        <span class="vl-chip">Amit owes 100</span>
-                        <span class="vl-chip">Bought 50 mangoes</span>
-                      </p>
-                    </section>
-                    """
+                    _multilingual_examples_panel()
                 )
                 with gr.Row(elem_classes="vl-example-row"):
                     example_sale_button = gr.Button("Try sale")
@@ -214,10 +207,31 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                             elem_classes="vl-panel",
                         )
 
-                with gr.Row():
-                    save_button = gr.Button("Save reviewed transaction")
-
                 review_card_output = gr.HTML(_empty_review_card())
+                gr.HTML(_section_heading("Edit Before Save"))
+                with gr.Row():
+                    review_transaction_type = gr.Dropdown(
+                        choices=TRANSACTION_TYPE_CHOICES,
+                        label="Transaction type",
+                        value="unknown",
+                    )
+                    review_payment_status = gr.Dropdown(
+                        choices=PAYMENT_STATUS_CHOICES,
+                        label="Payment status",
+                        value="unknown",
+                    )
+                with gr.Row():
+                    review_item = gr.Textbox(label="Item")
+                    review_customer = gr.Textbox(label="Customer")
+                with gr.Row():
+                    review_quantity = gr.Number(label="Quantity")
+                    review_unit_price = gr.Number(label="Unit price")
+                    review_amount = gr.Number(label="Amount")
+                    review_confidence = gr.Number(label="Confidence")
+                review_notes = gr.Textbox(label="Notes", lines=2)
+                with gr.Row():
+                    apply_review_edits_button = gr.Button("Update Review")
+                    save_button = gr.Button("Save reviewed transaction", variant="primary")
                 receipt_output = gr.HTML(_empty_receipt_card())
                 with gr.Row():
                     add_another_button = gr.Button("Add another")
@@ -227,20 +241,82 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                 status_output = gr.Markdown(elem_classes="vl-status")
 
                 parse_button.click(
-                    fn=lambda note, ai_mode: _parse_note(note, db_path, ai_mode),
+                    fn=lambda note, ai_mode: _parse_note_for_editing(note, db_path, ai_mode),
                     inputs=[note_input, ai_mode_input],
-                    outputs=[structured_output, parsed_state, status_output, review_card_output],
+                    outputs=[
+                        structured_output,
+                        parsed_state,
+                        status_output,
+                        review_card_output,
+                        review_transaction_type,
+                        review_item,
+                        review_quantity,
+                        review_unit_price,
+                        review_amount,
+                        review_customer,
+                        review_payment_status,
+                        review_notes,
+                        review_confidence,
+                    ],
                 )
                 transcribe_button.click(
-                    fn=lambda audio_path, ai_mode: _transcribe_and_parse_audio(audio_path, db_path, ai_mode),
+                    fn=lambda audio_path, ai_mode: _transcribe_and_parse_audio_for_editing(audio_path, db_path, ai_mode),
                     inputs=[audio_input, ai_mode_input],
-                    outputs=[transcript_output, structured_output, parsed_state, status_output, review_card_output],
+                    outputs=[
+                        transcript_output,
+                        structured_output,
+                        parsed_state,
+                        status_output,
+                        review_card_output,
+                        review_transaction_type,
+                        review_item,
+                        review_quantity,
+                        review_unit_price,
+                        review_amount,
+                        review_customer,
+                        review_payment_status,
+                        review_notes,
+                        review_confidence,
+                    ],
                 )
                 example_sale_button.click(fn=lambda: "Sold 12 mangoes, 20 each", inputs=None, outputs=note_input)
                 example_expense_button.click(fn=lambda: "Paid 500 for supplies", inputs=None, outputs=note_input)
                 example_credit_button.click(fn=lambda: "Amit owes 100", inputs=None, outputs=note_input)
                 example_payment_button.click(fn=lambda: "Amit paid 50", inputs=None, outputs=note_input)
                 example_inventory_button.click(fn=lambda: "Bought 50 mangoes", inputs=None, outputs=note_input)
+                start_today_button.click(
+                    fn=lambda: ("Sold 12 mangoes, 20 each", "Start by typing or recording one transaction, then parse and review it."),
+                    inputs=None,
+                    outputs=[note_input, record_demo_status],
+                )
+                apply_review_edits_button.click(
+                    fn=lambda parsed, transaction_type, item, quantity, unit_price, amount, customer, payment_status, notes, confidence: _apply_review_edits(
+                        parsed,
+                        transaction_type,
+                        item,
+                        quantity,
+                        unit_price,
+                        amount,
+                        customer,
+                        payment_status,
+                        notes,
+                        confidence,
+                        db_path,
+                    ),
+                    inputs=[
+                        parsed_state,
+                        review_transaction_type,
+                        review_item,
+                        review_quantity,
+                        review_unit_price,
+                        review_amount,
+                        review_customer,
+                        review_payment_status,
+                        review_notes,
+                        review_confidence,
+                    ],
+                    outputs=[structured_output, parsed_state, status_output, review_card_output],
+                )
 
         with gr.Column(visible=False, elem_classes="vl-page-section") as dashboard_page:
                 gr.HTML('<div id="vl-page-dashboard" class="vl-page-anchor"></div>')
@@ -373,6 +449,53 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                 field_notes_status_output = gr.Markdown(elem_classes="vl-status")
                 seed_demo_button = gr.Button("Seed Demo Transactions", variant="primary")
                 seed_demo_status = gr.Markdown(elem_classes="vl-status")
+
+        with gr.Column(visible=False, elem_classes="vl-page-section") as field_test_page:
+                gr.HTML('<div id="vl-page-field-test" class="vl-page-anchor"></div>')
+                gr.HTML(
+                    _info_panel(
+                        "Field Test Mode",
+                        "Use this with a real seller or a realistic practice run. Capture what they tried, what failed, and what changed after feedback.",
+                    )
+                )
+                field_test_checklist = gr.CheckboxGroup(
+                    choices=[
+                        "Record sale",
+                        "Record expense",
+                        "Customer owes",
+                        "Customer paid",
+                        "Bought stock",
+                        "Review dashboard",
+                        "Export report",
+                    ],
+                    label="Seller test checklist",
+                    value=_field_test_checklist_values(initial_settings),
+                    elem_classes="vl-panel",
+                )
+                with gr.Row():
+                    field_test_who_input = gr.Textbox(
+                        label="Who this is for",
+                        value=initial_settings["field_test_who"],
+                        lines=4,
+                        elem_classes="vl-panel",
+                    )
+                    field_test_tried_input = gr.Textbox(
+                        label="What they tried",
+                        value=initial_settings["field_test_tried"],
+                        lines=4,
+                        elem_classes="vl-panel",
+                    )
+                    field_test_changed_input = gr.Textbox(
+                        label="What changed after feedback",
+                        value=initial_settings["field_test_changed"],
+                        lines=4,
+                        elem_classes="vl-panel",
+                    )
+                save_field_test_button = gr.Button("Save Field Test Evidence", variant="primary")
+                field_test_status_output = gr.Markdown(
+                    value=_field_test_summary(initial_settings),
+                    elem_classes="vl-status",
+                )
 
         with gr.Column(visible=False, elem_classes="vl-page-section") as bulk_page:
                 gr.HTML('<div id="vl-page-bulk" class="vl-page-anchor"></div>')
@@ -683,8 +806,31 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                 )
 
         save_button.click(
-            fn=lambda transaction: _save_transaction_and_refresh(transaction, db_path),
-            inputs=parsed_state,
+            fn=lambda parsed, transaction_type, item, quantity, unit_price, amount, customer, payment_status, notes, confidence: _save_reviewed_transaction_and_refresh(
+                parsed,
+                transaction_type,
+                item,
+                quantity,
+                unit_price,
+                amount,
+                customer,
+                payment_status,
+                notes,
+                confidence,
+                db_path,
+            ),
+            inputs=[
+                parsed_state,
+                review_transaction_type,
+                review_item,
+                review_quantity,
+                review_unit_price,
+                review_amount,
+                review_customer,
+                review_payment_status,
+                review_notes,
+                review_confidence,
+            ],
             outputs=[
                 status_output,
                 receipt_output,
@@ -841,6 +987,11 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
             inputs=[field_who_input, field_tried_input, field_changed_input],
             outputs=field_notes_status_output,
         )
+        save_field_test_button.click(
+            fn=lambda checklist, who, tried, changed: _save_field_test_evidence(checklist, who, tried, changed, db_path),
+            inputs=[field_test_checklist, field_test_who_input, field_test_tried_input, field_test_changed_input],
+            outputs=field_test_status_output,
+        )
         record_health_button.click(
             fn=lambda: _get_system_check(db_path),
             inputs=None,
@@ -851,6 +1002,7 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
             dashboard_page,
             health_page,
             story_page,
+            field_test_page,
             bulk_page,
             credit_page,
             inventory_page,
@@ -861,6 +1013,7 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
         nav_dashboard_button.click(fn=lambda: _show_page("dashboard"), inputs=None, outputs=page_outputs)
         nav_health_button.click(fn=lambda: _show_page("health"), inputs=None, outputs=page_outputs)
         nav_story_button.click(fn=lambda: _show_page("story"), inputs=None, outputs=page_outputs)
+        nav_field_test_button.click(fn=lambda: _show_page("field_test"), inputs=None, outputs=page_outputs)
         nav_bulk_button.click(fn=lambda: _show_page("bulk"), inputs=None, outputs=page_outputs)
         nav_credit_button.click(fn=lambda: _show_page("credit"), inputs=None, outputs=page_outputs)
         nav_inventory_button.click(fn=lambda: _show_page("inventory"), inputs=None, outputs=page_outputs)
@@ -869,7 +1022,24 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
         add_another_button.click(
             fn=_reset_record_form,
             inputs=None,
-            outputs=[note_input, transcript_output, structured_output, parsed_state, status_output, review_card_output, receipt_output],
+            outputs=[
+                note_input,
+                transcript_output,
+                structured_output,
+                parsed_state,
+                status_output,
+                review_card_output,
+                receipt_output,
+                review_transaction_type,
+                review_item,
+                review_quantity,
+                review_unit_price,
+                review_amount,
+                review_customer,
+                review_payment_status,
+                review_notes,
+                review_confidence,
+            ],
         )
         view_dashboard_button.click(fn=lambda: _show_page("dashboard"), inputs=None, outputs=page_outputs)
         download_summary_button.click(
@@ -920,6 +1090,35 @@ def _today_work_panel() -> str:
         <span><strong>Customer Owes</strong>“Amit owes 100”</span>
         <span><strong>Customer Paid</strong>“Amit paid 50”</span>
         <span><strong>Bought Stock</strong>“Bought 50 mangoes”</span>
+      </div>
+    </section>
+    """
+
+
+def _first_run_onboarding_panel() -> str:
+    """Return a compact first-run guide for sellers."""
+    return """
+    <section class="vl-onboarding-panel">
+      <h2>Start in 60 seconds</h2>
+      <ol>
+        <li><strong>1. Confirm setup</strong><span>Business name, currency, stock threshold, and language style.</span></li>
+        <li><strong>2. Record one note</strong><span>Use voice or text for a sale, expense, customer due, payment, or stock purchase.</span></li>
+        <li><strong>3. Review and fix</strong><span>Edit item, amount, customer, or type before saving.</span></li>
+        <li><strong>4. Close the day</strong><span>Open Dashboard, Field Test, Reports, and Ledger to inspect results.</span></li>
+      </ol>
+    </section>
+    """
+
+
+def _multilingual_examples_panel() -> str:
+    """Return grouped examples across English and local seller shorthand."""
+    return """
+    <section class="vl-language-panel">
+      <h2>Example inputs</h2>
+      <div>
+        <span><strong>English</strong><code>Sold 12 mangoes, 20 each</code><code>Paid 500 for supplies</code><code>Amit owes 100</code></span>
+        <span><strong>Hinglish</strong><code>Amit ne 100 dene hai</code><code>Amit ne 50 diya</code><code>50 mango kharida</code></span>
+        <span><strong>Gujarati-lite</strong><code>50 mango lidha</code><code>rent 300 diya</code><code>12 mango 20 each</code></span>
       </div>
     </section>
     """
@@ -992,6 +1191,7 @@ def _show_page(active_page: str) -> tuple[dict[str, Any], ...]:
         "dashboard",
         "health",
         "story",
+        "field_test",
         "bulk",
         "credit",
         "inventory",
@@ -1001,9 +1201,18 @@ def _show_page(active_page: str) -> tuple[dict[str, Any], ...]:
     return tuple(gr.update(visible=page_id == active_page) for page_id in page_ids)
 
 
-def _reset_record_form() -> tuple[str, str, dict[str, Any], None, str, str, str]:
+def _reset_record_form() -> tuple[str, str, dict[str, Any], None, str, str, str, str, None, None, None, None, None, str, str, float]:
     """Clear the record flow for the next transaction."""
-    return "", "", _empty_transaction_payload(), None, "Ready for the next transaction.", _empty_review_card(), _empty_receipt_card()
+    return (
+        "",
+        "",
+        _empty_transaction_payload(),
+        None,
+        "Ready for the next transaction.",
+        _empty_review_card(),
+        _empty_receipt_card(),
+        *_empty_review_fields(),
+    )
 
 
 def _force_local_mode(ai_mode: str | None) -> bool:
@@ -1079,6 +1288,16 @@ def _parse_note(
     return payload, payload, status, _review_card(transaction, result.message, warnings)
 
 
+def _parse_note_for_editing(
+    note: str,
+    db_path: str | Path | None = None,
+    ai_mode: str = "Cloud AI first",
+) -> tuple[dict[str, Any], dict[str, Any], str, str, str, str | None, float | None, float | None, float | None, str | None, str, str, float]:
+    """Parse a note and populate editable review fields."""
+    payload, state, status, review_card = _parse_note(note, db_path, ai_mode)
+    return payload, state, status, review_card, *_payload_to_review_fields(payload)
+
+
 def _transcribe_and_parse_audio(
     audio_path: Any,
     db_path: str | Path | None = None,
@@ -1114,6 +1333,16 @@ def _transcribe_and_parse_audio(
     return transcription.transcript, payload, payload, status, _review_card(transaction, parse_result.message, warnings)
 
 
+def _transcribe_and_parse_audio_for_editing(
+    audio_path: Any,
+    db_path: str | Path | None = None,
+    ai_mode: str = "Cloud AI first",
+) -> tuple[str, dict[str, Any], dict[str, Any] | None, str, str, str, str | None, float | None, float | None, float | None, str | None, str, str, float]:
+    """Transcribe and parse audio while populating editable review fields."""
+    transcript, payload, state, status, review_card = _transcribe_and_parse_audio(audio_path, db_path, ai_mode)
+    return transcript, payload, state, status, review_card, *_payload_to_review_fields(payload)
+
+
 def _save_transaction(transaction_payload: dict[str, Any] | None, db_path: str | Path | None) -> str:
     """Save the parsed transaction payload to SQLite."""
     if not transaction_payload:
@@ -1122,6 +1351,41 @@ def _save_transaction(transaction_payload: dict[str, Any] | None, db_path: str |
     transaction = Transaction(**transaction_payload)
     transaction_id = add_transaction(transaction, db_path)
     return f"Saved transaction #{transaction_id}: {_transaction_summary(transaction)}."
+
+
+def _apply_review_edits(
+    transaction_payload: dict[str, Any] | None,
+    transaction_type: str,
+    item: str | None,
+    quantity: float | None,
+    unit_price: float | None,
+    amount: float | None,
+    customer: str | None,
+    payment_status: str,
+    notes: str | None,
+    confidence: float | None,
+    db_path: str | Path | None,
+) -> tuple[dict[str, Any], dict[str, Any] | None, str, str]:
+    """Apply inline review edits to parsed transaction state."""
+    if not transaction_payload:
+        empty_payload = _empty_transaction_payload()
+        return empty_payload, None, "Parse a transaction before editing the review.", _empty_review_card()
+
+    transaction = _transaction_from_edit_fields(
+        transaction_type=transaction_type,
+        item=item,
+        quantity=quantity,
+        unit_price=unit_price,
+        amount=amount,
+        customer=customer,
+        payment_status=payment_status,
+        notes=notes,
+        confidence=confidence,
+    )
+    payload = transaction.model_dump()
+    warnings = _review_warnings(transaction, db_path)
+    status = _status_message(transaction, "Review updated from your edits.", warnings=warnings)
+    return payload, payload, status, _review_card(transaction, "Review updated from your edits.", warnings)
 
 
 def _save_transaction_and_refresh(
@@ -1133,6 +1397,40 @@ def _save_transaction_and_refresh(
         return ("Parse a transaction before saving.", _empty_receipt_card(), _command_center(db_path), *_refresh_core_views(db_path))
 
     transaction = Transaction(**transaction_payload)
+    transaction_id = add_transaction(transaction, db_path)
+    status = f"Saved transaction #{transaction_id}: {_transaction_summary(transaction)}."
+    receipt = _receipt_card(transaction, transaction_id, db_path)
+    return (status, receipt, _command_center(db_path), *_refresh_core_views(db_path))
+
+
+def _save_reviewed_transaction_and_refresh(
+    transaction_payload: dict[str, Any] | None,
+    transaction_type: str,
+    item: str | None,
+    quantity: float | None,
+    unit_price: float | None,
+    amount: float | None,
+    customer: str | None,
+    payment_status: str,
+    notes: str | None,
+    confidence: float | None,
+    db_path: str | Path | None,
+) -> tuple[str, str, str, str, str, str, str, str, pd.DataFrame, pd.DataFrame, pd.DataFrame, str, pd.DataFrame, pd.DataFrame, pd.io.formats.style.Styler]:
+    """Save edited review fields and refresh demo-critical data views."""
+    if not transaction_payload:
+        return ("Parse a transaction before saving.", _empty_receipt_card(), _command_center(db_path), *_refresh_core_views(db_path))
+
+    transaction = _transaction_from_edit_fields(
+        transaction_type=transaction_type,
+        item=item,
+        quantity=quantity,
+        unit_price=unit_price,
+        amount=amount,
+        customer=customer,
+        payment_status=payment_status,
+        notes=notes,
+        confidence=confidence,
+    )
     transaction_id = add_transaction(transaction, db_path)
     status = f"Saved transaction #{transaction_id}: {_transaction_summary(transaction)}."
     receipt = _receipt_card(transaction, transaction_id, db_path)
@@ -1329,6 +1627,40 @@ def _save_field_notes(who: str, tried: str, changed: str, db_path: str | Path | 
         field_test_changed=changed,
     )
     return "Saved anonymized field-test notes."
+
+
+def _save_field_test_evidence(
+    checklist: list[str] | None,
+    who: str,
+    tried: str,
+    changed: str,
+    db_path: str | Path | None,
+) -> str:
+    """Persist field-test checklist and notes."""
+    checklist_value = ",".join(checklist or [])
+    settings = update_business_settings(
+        db_path=db_path,
+        field_test_who=who,
+        field_test_tried=tried,
+        field_test_changed=changed,
+        field_test_checklist=checklist_value,
+    )
+    return _field_test_summary(settings)
+
+
+def _field_test_checklist_values(settings: dict[str, str]) -> list[str]:
+    """Return stored field-test checklist selections."""
+    raw_value = settings.get("field_test_checklist", "")
+    return [item.strip() for item in raw_value.split(",") if item.strip()]
+
+
+def _field_test_summary(settings: dict[str, str]) -> str:
+    """Return a concise field-test evidence summary."""
+    completed = _field_test_checklist_values(settings)
+    return (
+        f"Field test evidence saved: {len(completed)} checklist item(s). "
+        f"Who: {settings['field_test_who']} Changed: {settings['field_test_changed']}"
+    )
 
 
 def _get_dashboard_data(
@@ -1795,6 +2127,29 @@ def _format_optional_number(value: object) -> str:
 def _empty_transaction_payload() -> dict[str, Any]:
     """Return a serializable empty transaction for UI display."""
     return Transaction().model_dump()
+
+
+def _empty_review_fields() -> tuple[str, None, None, None, None, None, str, str, float]:
+    """Return default values for editable review fields."""
+    return "unknown", None, None, None, None, None, "unknown", "", 0.0
+
+
+def _payload_to_review_fields(payload: dict[str, Any] | None) -> tuple[str, str | None, float | None, float | None, float | None, str | None, str, str, float]:
+    """Convert a transaction payload into editable review field values."""
+    if not payload:
+        return _empty_review_fields()
+    transaction = Transaction(**payload)
+    return (
+        transaction.transaction_type,
+        transaction.item,
+        transaction.quantity,
+        transaction.unit_price,
+        transaction.amount,
+        transaction.customer,
+        transaction.payment_status,
+        transaction.notes,
+        transaction.confidence,
+    )
 
 
 def _empty_review_card() -> str:

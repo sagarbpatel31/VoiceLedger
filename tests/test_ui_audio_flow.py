@@ -143,7 +143,7 @@ def test_demo_health_placeholder_includes_nemotron_status() -> None:
 def test_show_page_makes_exactly_one_section_visible() -> None:
     updates = gradio_app._show_page("ledger")
 
-    assert len(updates) == 9
+    assert len(updates) == 10
     assert updates[-1]["visible"] is True
     assert sum(1 for update in updates if update["visible"]) == 1
 
@@ -165,6 +165,51 @@ def test_review_card_surfaces_needs_review_for_missing_fields() -> None:
     assert "Needs review" in review_card
     assert "Missing amount" in review_card
     assert "Missing customer" in review_card
+
+
+def test_parse_note_for_editing_populates_review_fields(monkeypatch) -> None:
+    monkeypatch.setattr(
+        gradio_app.modal_api,
+        "parse_transaction_result",
+        lambda text, fallback, **kwargs: ParseResult(
+            transaction=fallback(text),
+            source="local",
+            message="Parsed locally with the rule parser.",
+        ),
+    )
+
+    result = gradio_app._parse_note_for_editing("Sold 12 mangoes, 20 each")
+
+    assert result[0]["transaction_type"] == "sale"
+    assert result[4] == "sale"
+    assert result[5] == "mangoes"
+    assert result[6] == 12
+    assert result[8] == 240
+
+
+def test_apply_review_edits_updates_payload_and_review_card(tmp_path) -> None:
+    db_path = tmp_path / "voiceledger.sqlite3"
+    parsed = gradio_app.local_parse_transaction("Sold 12 mangoes, 20 each").model_dump()
+
+    payload, state, status, review_card = gradio_app._apply_review_edits(
+        parsed,
+        "sale",
+        "mangoes",
+        10,
+        25,
+        250,
+        None,
+        "paid",
+        "Sold 10 mangoes, 25 each",
+        0.95,
+        db_path,
+    )
+
+    assert payload["quantity"] == 10
+    assert payload["amount"] == 250
+    assert state == payload
+    assert "Review updated" in status
+    assert "250" in review_card
 
 
 def test_receipt_card_summarizes_saved_sale(tmp_path) -> None:
@@ -232,3 +277,20 @@ def test_insight_coach_surfaces_credit_and_stock_actions(tmp_path) -> None:
     assert "Insight Coach" in coach
     assert "Follow up with Amit" in coach
     assert "Restock onions" in coach
+
+
+def test_field_test_evidence_persists_checklist_and_notes(tmp_path) -> None:
+    db_path = tmp_path / "voiceledger.sqlite3"
+
+    status = gradio_app._save_field_test_evidence(
+        ["Record sale", "Export report"],
+        "Local snack seller",
+        "Voice sale and PDF export",
+        "Moved corrections before save",
+        db_path,
+    )
+    settings = gradio_app.get_business_settings(db_path)
+
+    assert "2 checklist item" in status
+    assert settings["field_test_who"] == "Local snack seller"
+    assert gradio_app._field_test_checklist_values(settings) == ["Record sale", "Export report"]

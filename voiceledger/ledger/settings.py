@@ -23,6 +23,7 @@ DEFAULT_BUSINESS_SETTINGS = {
     "field_test_who": "A local informal seller who tracks sales, stock, customer dues, and profit from short notes.",
     "field_test_tried": "Voice notes, typed notes, customer credit, inventory updates, dashboard review, and exports.",
     "field_test_changed": "Added review warnings, save receipts, edit/delete, CSV export, and clearer demo health.",
+    "field_test_checklist": "Record sale,Record expense,Customer owes,Customer paid,Bought stock,Review dashboard,Export report",
 }
 
 

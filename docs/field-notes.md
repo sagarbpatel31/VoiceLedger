@@ -34,12 +34,14 @@ This is a good small-model problem because the output space is constrained: a tr
 1. Seed demo transactions from the first-screen Judge Demo Flow.
 2. Record or type: `Sold 12 mangoes, 20 each`.
 3. Show the parse source, review card, confidence, and warning badges.
-4. Save the transaction and show the receipt with bookkeeping side effects.
-5. Show Dashboard totals, the sales/expense timeline, Ledger row, Customer Credit detail, and Inventory detail.
-6. Edit or delete a transaction and show balances rebuilding.
-7. Run Daily Closeout, then export CSV, PDF report, and WhatsApp daily summary.
-8. Open Demo Health to show Modal, backend version, NVIDIA Nemotron parser status, SQLite, PDF, and endpoint checks.
-9. Open Submission Story to show the visual AI pipeline and why the constrained transaction schema fits small models.
+4. Correct one inline review field before saving to show that sellers can fix model or rule-parser mistakes immediately.
+5. Save the transaction and show the receipt with bookkeeping side effects.
+6. Show Dashboard totals, the Insight Coach, sales/expense timeline, Ledger row, Customer Credit detail, and Inventory detail.
+7. Open Field Test to show the seller checklist and anonymized feedback notes.
+8. Edit or delete a transaction and show balances rebuilding.
+9. Run Daily Closeout, then export CSV, PDF report, and WhatsApp daily summary.
+10. Open Demo Health to show Modal, backend version, NVIDIA Nemotron parser status, SQLite, PDF, and endpoint checks.
+11. Open Submission Story to show the visual AI pipeline and why the constrained transaction schema fits small models.
 
 ## Submission Freeze
 
@@ -49,8 +51,9 @@ The hackathon version is intentionally frozen around the complete bookkeeping lo
 - Modal/Nemotron parsing with local rule fallback.
 - Seller setup for business name, currency, low-stock threshold, and language style.
 - Hinglish/Hindi-lite/Gujarati-lite fallback examples for common seller notes.
-- Human-friendly review cards, warning badges, receipts, and save feedback.
+- First-run onboarding, multilingual examples, human-friendly review cards, inline review correction, warning badges, receipts, and save feedback.
 - Command Center, dashboard timeline, seller-day timeline, customer follow-up, inventory reorder list, ledger correction, Daily Closeout, PDF, CSV, and WhatsApp exports.
+- Field Test Mode for the seller checklist and anonymized “who/tried/changed” feedback evidence.
 - Demo Health for backend observability.
 - Submission Story for the AI pipeline and small-model fit rationale.
 
@@ -64,6 +67,7 @@ The small-model constraint helped keep the app honest. The model handles the fuz
 
 ## Screenshot Moments
 
-- Record flow: seed data, Today’s Work actions, review card, warning badges, source/status, save receipt.
-- Dashboard: daily totals, outstanding credit, sales/expense timeline, top seller, low-stock inventory.
+- Record flow: first-run onboarding, multilingual examples, review card, inline corrections, warning badges, source/status, save receipt.
+- Dashboard: daily totals, Insight Coach, outstanding credit, sales/expense timeline, top seller, low-stock inventory.
+- Field Test: workflow checklist and anonymized feedback evidence.
 - Reports and exports: Daily Closeout, PDF download, WhatsApp summary, CSV ledger export.

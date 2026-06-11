@@ -319,7 +319,9 @@ body,
 .vl-command-center,
 .vl-seller-timeline,
 .vl-ai-mode-card,
-.vl-insight-coach {
+.vl-insight-coach,
+.vl-onboarding-panel,
+.vl-language-panel {
   background: #ffffff !important;
   border: 1px solid var(--vl-border) !important;
   border-radius: 14px !important;
@@ -338,7 +340,9 @@ body,
 .vl-command-center *,
 .vl-seller-timeline *,
 .vl-ai-mode-card *,
-.vl-insight-coach * {
+.vl-insight-coach *,
+.vl-onboarding-panel *,
+.vl-language-panel * {
   color: var(--vl-text) !important;
   opacity: 1 !important;
 }
@@ -353,7 +357,9 @@ body,
 .vl-command-center h2,
 .vl-seller-timeline h2,
 .vl-ai-mode-card h2,
-.vl-insight-coach h2 {
+.vl-insight-coach h2,
+.vl-onboarding-panel h2,
+.vl-language-panel h2 {
   font-size: 18px !important;
   font-weight: 800 !important;
   margin: 0 0 10px !important;
@@ -363,7 +369,8 @@ body,
 .vl-review-grid,
 .vl-closeout-grid,
 .vl-small-model-card div,
-.vl-command-center div {
+.vl-command-center div,
+.vl-language-panel div {
   display: grid !important;
   gap: 10px !important;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)) !important;
@@ -373,7 +380,8 @@ body,
 .vl-review-grid div,
 .vl-closeout-grid span,
 .vl-small-model-card span,
-.vl-command-center span {
+.vl-command-center span,
+.vl-language-panel span {
   background: #f6f7f2 !important;
   border: 1px solid var(--vl-border) !important;
   border-radius: 10px !important;
@@ -385,7 +393,8 @@ body,
 .vl-review-grid span,
 .vl-closeout-grid strong,
 .vl-small-model-card strong,
-.vl-command-center strong {
+.vl-command-center strong,
+.vl-language-panel strong {
   color: #475247 !important;
   display: block !important;
   font-size: 12px !important;
@@ -406,7 +415,9 @@ body,
 .vl-closeout-card p,
 .vl-pipeline-strip p,
 .vl-ai-mode-card p,
-.vl-insight-coach p {
+.vl-insight-coach p,
+.vl-onboarding-panel p,
+.vl-language-panel p {
   color: #475247 !important;
   font-size: 14px !important;
   line-height: 1.4 !important;
@@ -487,12 +498,41 @@ body,
 }
 
 .vl-pipeline-strip li span,
-.vl-small-model-card span {
+.vl-small-model-card span,
+.vl-onboarding-panel li span {
   color: #475247 !important;
   display: block !important;
   font-size: 13px !important;
   line-height: 1.35 !important;
   margin-top: 4px !important;
+}
+
+.vl-onboarding-panel ol {
+  display: grid !important;
+  gap: 10px !important;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)) !important;
+  list-style: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.vl-onboarding-panel li {
+  background: #f6f7f2 !important;
+  border: 1px solid var(--vl-border) !important;
+  border-radius: 10px !important;
+  padding: 10px !important;
+}
+
+.vl-onboarding-panel li strong {
+  display: block !important;
+  font-size: 14px !important;
+  font-weight: 900 !important;
+}
+
+.vl-language-panel code {
+  display: block !important;
+  margin-top: 6px !important;
+  white-space: normal !important;
 }
 
 .vl-seller-timeline ol {
