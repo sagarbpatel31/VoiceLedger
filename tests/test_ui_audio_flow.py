@@ -204,6 +204,40 @@ def test_parse_note_for_editing_populates_review_fields(monkeypatch) -> None:
     assert result[8] == 240
 
 
+def test_price_memory_fills_missing_sale_price(tmp_path, monkeypatch) -> None:
+    db_path = tmp_path / "voiceledger.sqlite3"
+    gradio_app.add_transaction(gradio_app.local_parse_transaction("Sold 12 mangoes, 20 each"), db_path)
+    monkeypatch.setattr(
+        gradio_app.modal_api,
+        "parse_transaction_result",
+        lambda text, fallback, **kwargs: ParseResult(
+            transaction=fallback(text),
+            source="local",
+            message="Parsed locally with the rule parser.",
+        ),
+    )
+
+    result = gradio_app._parse_note_for_editing("Sold 5 mangoes", db_path)
+
+    assert result[0]["unit_price"] == 20
+    assert result[0]["amount"] == 100
+    assert result[7] == 20
+    assert result[8] == 100
+    assert "Price memory used" in result[3]
+
+
+def test_price_memory_does_not_overwrite_explicit_price(tmp_path) -> None:
+    db_path = tmp_path / "voiceledger.sqlite3"
+    gradio_app.add_transaction(gradio_app.local_parse_transaction("Sold 12 mangoes, 20 each"), db_path)
+    transaction = gradio_app.local_parse_transaction("Sold 5 mangoes, 30 each")
+
+    updated, used = gradio_app.suggest_price_from_history(transaction, db_path)
+
+    assert used is False
+    assert updated.unit_price == 30
+    assert updated.amount == 150
+
+
 def test_apply_review_edits_updates_payload_and_review_card(tmp_path) -> None:
     db_path = tmp_path / "voiceledger.sqlite3"
     parsed = gradio_app.local_parse_transaction("Sold 12 mangoes, 20 each").model_dump()
@@ -287,6 +321,37 @@ def test_customer_followup_and_reorder_helpers(tmp_path) -> None:
     assert "Onions" in message
 
 
+def test_debt_reminder_queue_sorts_positive_balances(tmp_path) -> None:
+    db_path = tmp_path / "voiceledger.sqlite3"
+    gradio_app.add_transaction(gradio_app.local_parse_transaction("Amit owes 100"), db_path)
+    gradio_app.add_transaction(gradio_app.local_parse_transaction("Ramesh owes 250"), db_path)
+    gradio_app.add_transaction(gradio_app.local_parse_transaction("Amit paid 40"), db_path)
+
+    queue = gradio_app.get_debt_reminder_queue(db_path)
+    reminder = gradio_app.generate_debt_reminder("Ramesh", db_path)
+
+    assert list(queue["customer"]) == ["Ramesh", "Amit"]
+    assert "₹250" in queue.iloc[0]["suggested_message"]
+    assert "Ramesh" in reminder
+
+
+def test_reorder_intelligence_flags_low_and_fast_stock(tmp_path) -> None:
+    db_path = tmp_path / "voiceledger.sqlite3"
+    gradio_app.update_business_settings(low_stock_threshold=5, db_path=db_path)
+    gradio_app.add_transaction(gradio_app.local_parse_transaction("Bought 3 onions"), db_path)
+    gradio_app.add_transaction(gradio_app.local_parse_transaction("Bought 20 mangoes"), db_path)
+    gradio_app.add_transaction(gradio_app.local_parse_transaction("Sold 12 mangoes, 20 each"), db_path)
+
+    recommendations = gradio_app.generate_reorder_intelligence(db_path)
+    table, message = gradio_app._generate_reorder_intelligence_for_ui(db_path)
+
+    statuses = dict(zip(recommendations["item"], recommendations["status"], strict=True))
+    assert statuses["onions"] == "Low stock"
+    assert statuses["mangoes"] == "Selling fast"
+    assert "recent_sold" in table.columns
+    assert "Mangoes" in message
+
+
 def test_currency_presets_and_voice_commands(tmp_path) -> None:
     db_path = tmp_path / "voiceledger.sqlite3"
     gradio_app.add_transaction(gradio_app.local_parse_transaction("Amit owes 100"), db_path)
@@ -326,3 +391,40 @@ def test_field_test_evidence_persists_checklist_and_notes(tmp_path) -> None:
     assert "2 checklist item" in status
     assert settings["field_test_who"] == "Local snack seller"
     assert gradio_app._field_test_checklist_values(settings) == ["Record sale", "Export report"]
+
+
+def test_field_test_evidence_persists_real_user_details(tmp_path) -> None:
+    db_path = tmp_path / "voiceledger.sqlite3"
+
+    status = gradio_app._save_field_test_evidence(
+        ["Record sale"],
+        "Local seller",
+        "Voice note",
+        "Old change note",
+        db_path,
+        pain_point="Paper notes get lost",
+        before="Used memory",
+        after="Checks dashboard",
+        useful="Debt reminders",
+        changed_after_feedback="Added price memory",
+    )
+    settings = gradio_app.get_business_settings(db_path)
+
+    assert "Paper notes get lost" in status
+    assert settings["field_pain_point"] == "Paper notes get lost"
+    assert settings["field_before"] == "Used memory"
+    assert settings["field_after"] == "Checks dashboard"
+    assert settings["field_useful_moments"] == "Debt reminders"
+    assert settings["field_changed_after_feedback"] == "Added price memory"
+
+
+def test_guided_demo_status_reflects_progress(tmp_path) -> None:
+    db_path = tmp_path / "voiceledger.sqlite3"
+
+    empty_status = gradio_app.get_guided_demo_status(db_path)
+    gradio_app.add_transaction(gradio_app.local_parse_transaction("Sold 12 mangoes, 20 each"), db_path)
+    progressed_status = gradio_app.get_guided_demo_status(db_path)
+
+    assert "Guided Judge Mode" in empty_status
+    assert "Seed Demo Data" in progressed_status
+    assert "Done" in progressed_status

@@ -12,6 +12,7 @@
 
 - `Sections` navigation opens the correct page and no old Gradio tab row is visible.
 - First screen shows `1. Seed demo data -> 2. Record/type -> 3. Save -> 4. View dashboard/reports`.
+- First screen shows Guided Judge Mode progress states.
 - `Submission Story` shows the AI pipeline strip.
 - `Submission Story` shows the “Why small models fit” card.
 - `Demo Health` shows Modal reachable and backend version.
@@ -22,6 +23,7 @@
 - Local fallback parses `Amit ne 100 dene hai`, `Amit ne 50 diya`, and `50 mango kharida`.
 - Voice parse works and transcript appears.
 - Review card shows type, item, quantity, price, amount, customer, source, and confidence.
+- Price memory fills a missing sale price for a previously sold item and shows `Price memory used`.
 - Parse status shows source plus language/confidence.
 - Smart warnings appear for low confidence, missing fields, duplicate risk, and negative stock.
 - Save shows a receipt with transaction type, amount, and side effects.
@@ -33,15 +35,17 @@
 - Customer Credit section reflects `Amit owes 100` and `Amit paid 40`.
 - Customer detail lookup shows customer transaction history and status.
 - Customer follow-up generates a WhatsApp reminder.
+- Debt reminder queue shows customers with outstanding balances sorted highest first.
 - Inventory reflects purchases and sales.
 - Inventory detail lookup shows bought, sold, current stock, and low-stock status.
 - Inventory reorder list uses the configured threshold.
+- Inventory reorder intelligence shows recent sold quantity, status, and suggested action.
 - Ledger edit/delete works and derived balances rebuild.
 - CSV export downloads from Ledger.
 - Daily Closeout generates PDF, CSV, WhatsApp summary, and a status line.
 - PDF report downloads from Reports.
 - WhatsApp summary generates copyable text in English, Spanish, French, and Portuguese.
-- Field Test correction log shows edited review fields.
+- Field Test evidence saves pain point, before/after story, useful moments, changed-after-feedback notes, and correction log.
 
 ## Prize Alignment
 

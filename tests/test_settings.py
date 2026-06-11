@@ -10,6 +10,11 @@ def test_business_settings_defaults_load_when_empty(tmp_path: Path) -> None:
 
     assert settings["business_name"] == "VoiceLedger Seller"
     assert settings["currency_symbol"] == "₹"
+    assert settings["field_pain_point"]
+    assert settings["field_before"]
+    assert settings["field_after"]
+    assert settings["field_useful_moments"]
+    assert settings["field_changed_after_feedback"]
     assert get_low_stock_threshold(db_path) == 5
 
 

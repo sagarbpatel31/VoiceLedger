@@ -20,6 +20,7 @@ The submission version is feature-frozen around the complete demo loop:
 - Record a transaction with your microphone and transcribe it with faster-whisper.
 - Configure seller context: business name, currency label, low-stock threshold, and language style.
 - Pick common currency presets for INR, USD, EUR, GBP, MXN, and BRL, or enter a custom currency label.
+- Follow a Guided Judge Mode path for health check, seeded data, sale capture, save, dashboard, and reports.
 - Use a first-run “Start in 60 seconds” guide for setup, first transaction, review, and closeout.
 - Type or paste a transaction note.
 - Bulk import multiple pasted notes for review and editing.
@@ -27,6 +28,7 @@ The submission version is feature-frozen around the complete demo loop:
 - Parse common English, Hinglish, Hindi-lite, Gujarati-lite, Spanish, French, and Portuguese seller phrases with deterministic fallback rules.
 - Review a human-friendly transaction card with warning badges before saving.
 - See a language/confidence chip after parsing so multilingual notes are visibly handled.
+- Use price memory to fill missing sale price/amount from the latest saved item sale.
 - Correct transaction type, item, customer, quantity, price, amount, notes, and confidence directly before saving.
 - Keep a correction log for review edits so model/rule mistakes become visible field-test evidence.
 - Choose `Cloud AI first` or `Local fallback only` from the Record screen to make the AI route explicit during demos.
@@ -40,6 +42,8 @@ The submission version is feature-frozen around the complete demo loop:
 - Generate WhatsApp-ready daily business summaries in English, Spanish, French, or Portuguese.
 - Run shortcut commands like `close today`, `show Amit`, or `stock mangoes`.
 - Generate customer follow-up reminders and an inventory reorder list.
+- Use a debt reminder queue sorted by highest customer balance.
+- Use reorder intelligence that combines stock threshold with recent sold quantity.
 - Capture field-test evidence with a seller checklist and anonymized feedback notes.
 - Offload speech transcription and LLM parsing to optional Modal endpoints.
 - Edit or delete saved transactions while keeping customer credit and inventory balances consistent.
@@ -122,7 +126,7 @@ The same examples are available in `sample_data/demo_transactions.txt`.
 
 Capture these three moments for the Space README, demo video, or social post:
 
-- `Record Text & Voice`: Today’s Work quick actions, review card, warning badges, and save receipt.
+- `Record Text & Voice`: Guided Judge Mode, Today’s Work quick actions, review card, warning badges, price memory, and save receipt.
 - `Dashboard`: Insight Coach, metrics, seller-day activity timeline, sales/expense timeline, top-selling item, low-stock table, and outstanding credit.
 - `Field Test`: seller checklist, anonymized “who/tried/changed” notes, and saved evidence status.
 - `Reports & PDF` plus `Ledger`: Daily Closeout, PDF/WhatsApp export, CSV download, and ledger correction.
@@ -198,14 +202,18 @@ curl -X POST https://sagarpat3199--voiceledger-api.modal.run/parse \
 - The Insight Coach turns those dashboard signals into next actions, such as credit follow-up, restocking, and daily closeout.
 - Customer and inventory detail views show transaction history for one customer or item.
 - Smart review warnings flag low confidence, missing fields, duplicate risk, and negative stock before save.
+- Price memory fills missing sale prices from the latest matching saved sale and marks the review with a `Price memory used` badge.
 - Inline review editing lets sellers correct the parsed transaction before the save touches the ledger.
 - Seller setup persists business name, currency label, low-stock threshold, and language style in SQLite.
 - Currency presets make the app easier to demo for INR, USD, EUR, GBP, MXN, BRL, and custom local labels.
 - Field Test persists anonymized seller evidence and a workflow checklist in SQLite.
+- Field Test evidence includes pain point, before/after story, useful moments, and changed-after-feedback notes.
 - The Field Test mistake log records corrected fields before save so product feedback is visible.
 - Local fallback rules include common English, Hinglish, Hindi-lite, Gujarati-lite, Spanish, French, and Portuguese seller notes.
 - Parse status includes a lightweight language/confidence chip for multilingual seller notes.
 - Customer follow-up and inventory reorder helpers generate WhatsApp-ready action messages.
+- Debt reminder queue sorts customers with outstanding balances by highest amount due.
+- Inventory reorder intelligence adds recent sold quantity, low-stock/selling-fast status, and suggested actions.
 - WhatsApp summaries provide short copyable daily recaps in English, Spanish, French, or Portuguese.
 - Voice command shortcuts provide quick access to daily closeout, customer detail, and inventory detail.
 - Bulk import splits pasted notes by line, parses each line, supports review edits, and saves all reviewed transactions.

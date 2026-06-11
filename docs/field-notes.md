@@ -34,7 +34,7 @@ This is a good small-model problem because the output space is constrained: a tr
 1. Seed demo transactions from the first-screen Judge Demo Flow.
 2. Record or type: `Sold 12 mangoes, 20 each`.
 3. Show the parse source, review card, confidence, and warning badges.
-4. Correct one inline review field before saving to show that sellers can fix model or rule-parser mistakes immediately.
+4. Show price memory when a known item is missing price, then correct one inline review field before saving to show that sellers can fix model or rule-parser mistakes immediately.
 5. Save the transaction and show the receipt with bookkeeping side effects.
 6. Show Dashboard totals, the Insight Coach, sales/expense timeline, Ledger row, Customer Credit detail, and Inventory detail.
 7. Open Field Test to show the seller checklist and anonymized feedback notes.
@@ -52,9 +52,10 @@ The hackathon version is intentionally frozen around the complete bookkeeping lo
 - Seller setup for business name, currency, low-stock threshold, and language style.
 - Currency presets and translated WhatsApp summaries for sellers who demo in INR, USD, EUR, GBP, MXN, BRL, English, Spanish, French, or Portuguese contexts.
 - Hinglish/Hindi-lite/Gujarati-lite/Spanish/French/Portuguese fallback examples for common seller notes.
-- First-run onboarding, multilingual examples, language/confidence chips, human-friendly review cards, inline review correction, mistake logging, warning badges, receipts, and save feedback.
-- Command Center, dashboard timeline, seller-day timeline, customer follow-up, inventory reorder list, ledger correction, Daily Closeout, PDF, CSV, and WhatsApp exports.
+- Guided Judge Mode, first-run onboarding, multilingual examples, language/confidence chips, price memory, human-friendly review cards, inline review correction, mistake logging, warning badges, receipts, and save feedback.
+- Command Center, dashboard timeline, seller-day timeline, debt reminder queue, customer follow-up, inventory reorder intelligence, ledger correction, Daily Closeout, PDF, CSV, and WhatsApp exports.
 - Field Test Mode for the seller checklist and anonymized “who/tried/changed” feedback evidence.
+- Richer Field Test Evidence for pain point, before/after workflow, useful moments, and changed-after-feedback notes.
 - Demo Health for backend observability.
 - Submission Story for the AI pipeline and small-model fit rationale.
 
@@ -62,13 +63,13 @@ This freeze keeps the demo reliable and makes the value proposition easier to ju
 
 ## What We Learned
 
-The strongest product behavior is not the model call itself. It is the reliable loop around it: voice input, readable review, warning badges, save receipt, correction, and export. Informal sellers need speed, but they also need a way to spot mistakes and fix them. The correction log makes those mistakes measurable during field tests, while edit/delete, detail drilldowns, Daily Closeout, and CSV export make the app credible as a bookkeeping tool instead of a parser demo.
+The strongest product behavior is not the model call itself. It is the reliable loop around it: voice input, readable review, price memory, warning badges, save receipt, correction, reminders, restocking, and export. Informal sellers need speed, but they also need a way to spot mistakes and fix them. The correction log makes those mistakes measurable during field tests, while edit/delete, detail drilldowns, Daily Closeout, and CSV export make the app credible as a bookkeeping tool instead of a parser demo.
 
 The small-model constraint helped keep the app honest. The model handles the fuzzy human input; the code owns the accounting state.
 
 ## Screenshot Moments
 
-- Record flow: first-run onboarding, multilingual examples, language/confidence chip, voice command shortcuts, review card, inline corrections, warning badges, source/status, save receipt.
+- Record flow: Guided Judge Mode, first-run onboarding, multilingual examples, language/confidence chip, voice command shortcuts, price memory, review card, inline corrections, warning badges, source/status, save receipt.
 - Dashboard: daily totals, Insight Coach, outstanding credit, sales/expense timeline, top seller, low-stock inventory.
 - Field Test: workflow checklist, correction log, and anonymized feedback evidence.
 - Reports and exports: Daily Closeout, PDF download, WhatsApp summary, CSV ledger export.

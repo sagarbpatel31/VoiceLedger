@@ -8,7 +8,7 @@ VoiceLedger is a voice-first bookkeeping app for informal sellers and home busin
 
 ## 0:10-0:25 — Judge Flow and Health
 
-On the first screen, show the `Judge Demo Flow` panel:
+On the first screen, show `Guided Judge Mode` and the `Judge Demo Flow` panel:
 
 ```text
 1. Seed demo data -> 2. Record/type -> 3. Save -> 4. View dashboard/reports
@@ -47,6 +47,7 @@ Click parse. Show:
 
 - Transcript if using voice
 - Human-friendly transaction review card
+- Price memory badge if a known item is missing price
 - Inline review fields for correcting item, quantity, amount, customer, and notes before saving
 - Warning badges for low confidence, missing fields, duplicate risk, or negative stock when present
 - Parse source/status
@@ -62,7 +63,8 @@ Use the `Sections` navigation to open:
 - `Dashboard` to show sales/profit/credit and the sales/expense timeline
 - `Field Test` to show the seller checklist and anonymized “who/tried/changed” notes
 - `Customer Credit` to show dues, a selected customer detail view, and a follow-up message
-- `Inventory` to show stock, a selected item detail view, and the reorder list
+- `Customer Credit` to show the debt reminder queue sorted by highest balance
+- `Inventory` to show stock, a selected item detail view, and reorder intelligence
 - `Ledger` to show saved transactions
 
 Say: “The model handles messy input, but the app owns the accounting state.”
@@ -77,7 +79,7 @@ Open `Reports & PDF`, run `Daily Closeout`, then generate the PDF, translated Wh
 
 Suggested screenshot/GIF moments:
 
-- Record flow: first-run guide, multilingual examples, review card, inline correction, parse source, warning badges, save receipt.
+- Record flow: Guided Judge Mode, first-run guide, multilingual examples, review card, price memory, inline correction, parse source, warning badges, save receipt.
 - Seller setup: currency/threshold/language style and Command Center.
 - Field Test: seller checklist, feedback notes, and correction log.
 - Submission Story: AI pipeline and small-model fit card.

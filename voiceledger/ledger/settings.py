@@ -24,6 +24,11 @@ DEFAULT_BUSINESS_SETTINGS = {
     "field_test_tried": "Voice notes, typed notes, customer credit, inventory updates, dashboard review, and exports.",
     "field_test_changed": "Added review warnings, save receipts, edit/delete, CSV export, and clearer demo health.",
     "field_test_checklist": "Record sale,Record expense,Customer owes,Customer paid,Bought stock,Review dashboard,Export report",
+    "field_pain_point": "Sales, customer dues, and stock are written in scattered notes during a busy selling day.",
+    "field_before": "The seller checked memory, WhatsApp messages, and paper notes before knowing profit or dues.",
+    "field_after": "VoiceLedger turns short notes into sales, credit, inventory, and closeout reports in one place.",
+    "field_useful_moments": "Voice sale capture, customer balance follow-up, low-stock alerts, and WhatsApp summary.",
+    "field_changed_after_feedback": "Made review cards clearer, added correction logging, and made exports easier to find.",
 }
 
 

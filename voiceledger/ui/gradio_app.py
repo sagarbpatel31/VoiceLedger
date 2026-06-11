@@ -79,6 +79,7 @@ CURRENCY_PRESETS = {
     "Brazil - BRL (R$)": "R$",
     "Custom": "",
 }
+PRICE_MEMORY_BADGE = "Price memory used"
 DEMO_NOTES = [
     "Bought 60 mangoes",
     "Sold 12 mangoes, 20 each",
@@ -131,6 +132,8 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                     )
                 )
                 gr.HTML(_first_run_onboarding_panel())
+                guided_demo_output = gr.HTML(get_guided_demo_status(db_path))
+                refresh_guided_demo_button = gr.Button("Refresh Guided Judge Mode")
                 command_center_output = gr.HTML(_command_center(db_path))
                 gr.HTML(_section_heading("Seller Setup"))
                 with gr.Row():
@@ -198,6 +201,11 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                     interactive=False,
                     wrap=True,
                     elem_classes="vl-panel",
+                )
+                refresh_guided_demo_button.click(
+                    fn=lambda: get_guided_demo_status(db_path),
+                    inputs=None,
+                    outputs=guided_demo_output,
                 )
                 gr.HTML(
                     _info_panel(
@@ -490,6 +498,32 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                         lines=3,
                         elem_classes="vl-panel",
                     )
+                with gr.Row():
+                    field_pain_point_input = gr.Textbox(
+                        label="Pain point",
+                        value=initial_settings["field_pain_point"],
+                        lines=3,
+                        elem_classes="vl-panel",
+                    )
+                    field_before_input = gr.Textbox(
+                        label="Before VoiceLedger",
+                        value=initial_settings["field_before"],
+                        lines=3,
+                        elem_classes="vl-panel",
+                    )
+                with gr.Row():
+                    field_after_input = gr.Textbox(
+                        label="After VoiceLedger",
+                        value=initial_settings["field_after"],
+                        lines=3,
+                        elem_classes="vl-panel",
+                    )
+                    field_useful_input = gr.Textbox(
+                        label="Useful moments",
+                        value=initial_settings["field_useful_moments"],
+                        lines=3,
+                        elem_classes="vl-panel",
+                    )
                 save_field_notes_button = gr.Button("Save Field Test Notes")
                 field_notes_status_output = gr.Markdown(elem_classes="vl-status")
                 seed_demo_button = gr.Button("Seed Demo Transactions", variant="primary")
@@ -536,6 +570,38 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                         lines=4,
                         elem_classes="vl-panel",
                     )
+                with gr.Row():
+                    field_test_pain_point_input = gr.Textbox(
+                        label="Pain point",
+                        value=initial_settings["field_pain_point"],
+                        lines=3,
+                        elem_classes="vl-panel",
+                    )
+                    field_test_before_input = gr.Textbox(
+                        label="Before VoiceLedger",
+                        value=initial_settings["field_before"],
+                        lines=3,
+                        elem_classes="vl-panel",
+                    )
+                with gr.Row():
+                    field_test_after_input = gr.Textbox(
+                        label="After VoiceLedger",
+                        value=initial_settings["field_after"],
+                        lines=3,
+                        elem_classes="vl-panel",
+                    )
+                    field_test_useful_input = gr.Textbox(
+                        label="Useful moments",
+                        value=initial_settings["field_useful_moments"],
+                        lines=3,
+                        elem_classes="vl-panel",
+                    )
+                field_test_changed_after_feedback_input = gr.Textbox(
+                    label="Changed after feedback",
+                    value=initial_settings["field_changed_after_feedback"],
+                    lines=3,
+                    elem_classes="vl-panel",
+                )
                 save_field_test_button = gr.Button("Save Field Test Evidence", variant="primary")
                 field_test_status_output = gr.Markdown(
                     value=_field_test_summary(initial_settings),
@@ -650,6 +716,21 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                     inputs=followup_customer_name,
                     outputs=followup_output,
                 )
+                gr.HTML(_section_heading("Debt Reminder Queue"))
+                refresh_debt_queue_button = gr.Button("Refresh Reminder Queue")
+                debt_queue_output = gr.Dataframe(
+                    value=get_debt_reminder_queue(db_path),
+                    headers=["customer", "outstanding_balance", "suggested_message"],
+                    label="Customers to follow up",
+                    interactive=False,
+                    wrap=True,
+                    elem_classes="vl-panel",
+                )
+                refresh_debt_queue_button.click(
+                    fn=lambda: get_debt_reminder_queue(db_path),
+                    inputs=None,
+                    outputs=debt_queue_output,
+                )
 
         with gr.Column(visible=False, elem_classes="vl-page-section") as inventory_page:
                 gr.HTML('<div id="vl-page-inventory" class="vl-page-anchor"></div>')
@@ -697,8 +778,8 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                 gr.HTML(_section_heading("Inventory Reorder List"))
                 reorder_button = gr.Button("Generate Reorder List")
                 reorder_output = gr.Dataframe(
-                    headers=["item", "current_stock", "suggested_action"],
-                    label="Low-stock reorder list",
+                    headers=["item", "current_stock", "recent_sold", "threshold", "status", "suggested_action"],
+                    label="Inventory reorder intelligence",
                     interactive=False,
                     wrap=True,
                     elem_classes="vl-panel",
@@ -710,7 +791,7 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                     elem_classes="vl-panel",
                 )
                 reorder_button.click(
-                    fn=lambda: generate_reorder_list(db_path),
+                    fn=lambda: _generate_reorder_intelligence_for_ui(db_path),
                     inputs=None,
                     outputs=[reorder_output, reorder_message_output],
                 )
@@ -1049,13 +1130,51 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
             ],
         )
         save_field_notes_button.click(
-            fn=lambda who, tried, changed: _save_field_notes(who, tried, changed, db_path),
-            inputs=[field_who_input, field_tried_input, field_changed_input],
+            fn=lambda who, tried, changed, pain_point, before, after, useful: _save_field_notes(
+                who,
+                tried,
+                changed,
+                db_path,
+                pain_point=pain_point,
+                before=before,
+                after=after,
+                useful=useful,
+            ),
+            inputs=[
+                field_who_input,
+                field_tried_input,
+                field_changed_input,
+                field_pain_point_input,
+                field_before_input,
+                field_after_input,
+                field_useful_input,
+            ],
             outputs=field_notes_status_output,
         )
         save_field_test_button.click(
-            fn=lambda checklist, who, tried, changed: _save_field_test_evidence(checklist, who, tried, changed, db_path),
-            inputs=[field_test_checklist, field_test_who_input, field_test_tried_input, field_test_changed_input],
+            fn=lambda checklist, who, tried, changed, pain_point, before, after, useful, changed_after_feedback: _save_field_test_evidence(
+                checklist,
+                who,
+                tried,
+                changed,
+                db_path,
+                pain_point=pain_point,
+                before=before,
+                after=after,
+                useful=useful,
+                changed_after_feedback=changed_after_feedback,
+            ),
+            inputs=[
+                field_test_checklist,
+                field_test_who_input,
+                field_test_tried_input,
+                field_test_changed_input,
+                field_test_pain_point_input,
+                field_test_before_input,
+                field_test_after_input,
+                field_test_useful_input,
+                field_test_changed_after_feedback_input,
+            ],
             outputs=field_test_status_output,
         )
         record_health_button.click(
@@ -1365,8 +1484,11 @@ def _parse_note(
         force_local=_force_local_mode(ai_mode),
     )
     transaction = result.transaction
+    transaction, price_memory_used = suggest_price_from_history(transaction, db_path)
     payload = transaction.model_dump()
     warnings = _review_warnings(transaction, db_path)
+    if price_memory_used:
+        warnings.append(PRICE_MEMORY_BADGE)
     status = _status_message(transaction, result.message, result.fallback_reason, warnings=warnings)
     return payload, payload, status, _review_card(transaction, result.message, warnings)
 
@@ -1404,8 +1526,11 @@ def _transcribe_and_parse_audio(
         force_local=force_local,
     )
     transaction = parse_result.transaction
+    transaction, price_memory_used = suggest_price_from_history(transaction, db_path)
     payload = transaction.model_dump()
     warnings = _review_warnings(transaction, db_path)
+    if price_memory_used:
+        warnings.append(PRICE_MEMORY_BADGE)
     status = _status_message(
         transaction,
         parse_result.message,
@@ -1702,13 +1827,27 @@ def _save_seller_setup_and_refresh(
     )
 
 
-def _save_field_notes(who: str, tried: str, changed: str, db_path: str | Path | None) -> str:
+def _save_field_notes(
+    who: str,
+    tried: str,
+    changed: str,
+    db_path: str | Path | None,
+    *,
+    pain_point: str | None = None,
+    before: str | None = None,
+    after: str | None = None,
+    useful: str | None = None,
+) -> str:
     """Persist anonymized field-test notes."""
     update_business_settings(
         db_path=db_path,
         field_test_who=who,
         field_test_tried=tried,
         field_test_changed=changed,
+        field_pain_point=pain_point,
+        field_before=before,
+        field_after=after,
+        field_useful_moments=useful,
     )
     return "Saved anonymized field-test notes."
 
@@ -1719,6 +1858,12 @@ def _save_field_test_evidence(
     tried: str,
     changed: str,
     db_path: str | Path | None,
+    *,
+    pain_point: str | None = None,
+    before: str | None = None,
+    after: str | None = None,
+    useful: str | None = None,
+    changed_after_feedback: str | None = None,
 ) -> str:
     """Persist field-test checklist and notes."""
     checklist_value = ",".join(checklist or [])
@@ -1728,6 +1873,11 @@ def _save_field_test_evidence(
         field_test_tried=tried,
         field_test_changed=changed,
         field_test_checklist=checklist_value,
+        field_pain_point=pain_point,
+        field_before=before,
+        field_after=after,
+        field_useful_moments=useful,
+        field_changed_after_feedback=changed_after_feedback,
     )
     return _field_test_summary(settings)
 
@@ -1743,7 +1893,8 @@ def _field_test_summary(settings: dict[str, str]) -> str:
     completed = _field_test_checklist_values(settings)
     return (
         f"Field test evidence saved: {len(completed)} checklist item(s). "
-        f"Who: {settings['field_test_who']} Changed: {settings['field_test_changed']}"
+        f"Who: {settings['field_test_who']} Pain point: {settings['field_pain_point']} "
+        f"Changed: {settings['field_changed_after_feedback']}"
     )
 
 
@@ -1867,6 +2018,147 @@ def _seller_setup_status(settings: dict[str, str]) -> str:
         f"Seller setup: {settings['business_name']} · currency {settings['currency_symbol']} · "
         f"low stock below {settings['low_stock_threshold']} · {settings['language_style']}."
     )
+
+
+def suggest_price_from_history(transaction: Transaction, db_path: str | Path | None) -> tuple[Transaction, bool]:
+    """Fill missing sale price fields from the latest saved sale for the same item."""
+    if (
+        transaction.transaction_type != "sale"
+        or not transaction.item
+        or transaction.quantity is None
+        or transaction.unit_price is not None
+        or transaction.amount is not None
+    ):
+        return transaction, False
+
+    ledger = get_transactions(db_path)
+    if ledger.empty:
+        return transaction, False
+
+    item_name = transaction.item.lower()
+    matches = ledger[
+        (ledger["transaction_type"] == "sale")
+        & (ledger["item"].fillna("").astype(str).str.lower() == item_name)
+    ].copy()
+    if matches.empty:
+        return transaction, False
+
+    matches["unit_price"] = pd.to_numeric(matches["unit_price"], errors="coerce")
+    matches = matches[matches["unit_price"].notna() & (matches["unit_price"] > 0)]
+    if matches.empty:
+        return transaction, False
+
+    unit_price = float(matches.iloc[0]["unit_price"])
+    payload = transaction.model_dump()
+    payload["unit_price"] = unit_price
+    payload["amount"] = round(float(transaction.quantity) * unit_price, 2)
+    payload["confidence"] = max(float(transaction.confidence), 0.78)
+    return Transaction(**payload), True
+
+
+def get_debt_reminder_queue(db_path: str | Path | None = None) -> pd.DataFrame:
+    """Return customers with positive outstanding balances sorted by balance."""
+    balances = get_customer_balances(db_path)
+    columns = ["customer", "outstanding_balance", "suggested_message"]
+    if balances.empty:
+        return pd.DataFrame(columns=columns)
+
+    debt = balances.copy()
+    debt["outstanding_balance"] = pd.to_numeric(debt["outstanding_balance"], errors="coerce").fillna(0)
+    debt = debt[debt["outstanding_balance"] > 0].sort_values("outstanding_balance", ascending=False)
+    if debt.empty:
+        return pd.DataFrame(columns=columns)
+
+    debt["suggested_message"] = debt["customer"].apply(lambda customer: generate_debt_reminder(str(customer), db_path))
+    return debt[columns].reset_index(drop=True)
+
+
+def generate_debt_reminder(customer_name: str, db_path: str | Path | None = None) -> str:
+    """Generate a WhatsApp-ready reminder for one customer's outstanding balance."""
+    return generate_customer_followup(customer_name, db_path)
+
+
+def generate_reorder_intelligence(db_path: str | Path | None = None) -> pd.DataFrame:
+    """Return stock recommendations with sales velocity context."""
+    columns = ["item", "current_stock", "recent_sold", "threshold", "status", "suggested_action"]
+    inventory = get_inventory(db_path)
+    if inventory.empty:
+        return pd.DataFrame(columns=columns)
+
+    threshold = get_low_stock_threshold(db_path)
+    ledger = get_transactions(db_path)
+    stock = inventory.copy()
+    stock["current_stock"] = pd.to_numeric(stock["current_stock"], errors="coerce").fillna(0)
+    sales_by_item: dict[str, float] = {}
+    if not ledger.empty:
+        sale_rows = ledger[ledger["transaction_type"] == "sale"].copy()
+        sale_rows["quantity"] = pd.to_numeric(sale_rows["quantity"], errors="coerce").fillna(0)
+        sale_rows["item_key"] = sale_rows["item"].fillna("").astype(str).str.lower()
+        sales_by_item = sale_rows.groupby("item_key")["quantity"].sum().to_dict()
+
+    records: list[dict[str, Any]] = []
+    for _, row in stock.iterrows():
+        item = str(row["item"])
+        current_stock = float(row["current_stock"])
+        recent_sold = float(sales_by_item.get(item.lower(), 0.0))
+        status = "Stock ok"
+        if current_stock < threshold:
+            status = "Low stock"
+        elif recent_sold > 0 and current_stock <= max(threshold * 2, recent_sold):
+            status = "Selling fast"
+        if status == "Low stock":
+            action = f"Restock {item} now; stock is below {_format_quantity(threshold)}."
+        elif status == "Selling fast":
+            action = f"Plan {item} restock soon; recent sales are {_format_quantity(recent_sold)}."
+        else:
+            action = f"{item} stock is ok."
+        records.append(
+            {
+                "item": item,
+                "current_stock": current_stock,
+                "recent_sold": recent_sold,
+                "threshold": threshold,
+                "status": status,
+                "suggested_action": action,
+            }
+        )
+
+    recommendations = pd.DataFrame.from_records(records, columns=columns)
+    recommendations["_status_rank"] = recommendations["status"].map({"Low stock": 0, "Selling fast": 1, "Stock ok": 2})
+    return recommendations.sort_values(["_status_rank", "current_stock", "item"]).drop(columns=["_status_rank"]).reset_index(drop=True)
+
+
+def get_guided_demo_status(db_path: str | Path | None = None) -> str:
+    """Return compact progress states for the judge demo flow."""
+    ledger = get_transactions(db_path)
+    has_transactions = not ledger.empty
+    has_sale = has_transactions and bool((ledger["transaction_type"] == "sale").any())
+    has_closeout_exports = Path(tempfile.gettempdir(), "voiceledger_transactions.csv").exists()
+    health_ready = initialize_database(db_path).exists()
+    steps = [
+        ("Check Health", health_ready, "Demo Health is reachable from this page."),
+        ("Seed Demo Data", has_transactions, "Adds realistic sales, expenses, credit, and stock."),
+        ("Record/Type Sale", has_sale, "Try Sold 12 mangoes, 20 each."),
+        ("Save", has_transactions, "Receipt, ledger, dashboard, credit, and stock refresh."),
+        ("Open Dashboard", has_transactions, "Metrics and timeline are ready once data exists."),
+        ("Open Reports", has_closeout_exports, "Daily Closeout prepares PDF, WhatsApp, and CSV."),
+    ]
+    items = "".join(
+        f"""
+        <li class="{'vl-guided-done' if done else 'vl-guided-next'}">
+          <strong>{escape(label)}</strong>
+          <span>{'Done' if done else 'Next'} · {escape(help_text)}</span>
+        </li>
+        """
+        for label, done, help_text in steps
+    )
+    return f"""
+    <section class="vl-guided-mode">
+      <h2>Guided Judge Mode</h2>
+      <p>Use this path for a 90-second demo: health, seed, record, save, dashboard, reports.</p>
+      <ol>{items}</ol>
+    </section>
+    """
 
 
 def _last_transaction_label(db_path: str | Path | None) -> str:
@@ -2046,6 +2338,29 @@ def _run_voice_command(command: str | None, db_path: str | Path | None) -> str:
         return _review_card(parsed, "Command parsed as a transaction. Copy it into the transaction note to save.", warnings)
 
     return _empty_detail_card("Command result", "Command not recognized. Try close today, show Amit, stock mangoes, or a transaction note.")
+
+
+def _generate_reorder_intelligence_for_ui(db_path: str | Path | None) -> tuple[pd.DataFrame, str]:
+    """Return reorder intelligence and a WhatsApp-ready restock message."""
+    recommendations = generate_reorder_intelligence(db_path)
+    if recommendations.empty:
+        return recommendations, "No inventory recorded yet."
+
+    settings = get_business_settings(db_path)
+    message_lines = [
+        f"{settings['business_name']} Reorder Plan",
+        f"Low-stock threshold: {_format_quantity(get_low_stock_threshold(db_path))}",
+        "",
+    ]
+    action_rows = recommendations[recommendations["status"].isin(["Low stock", "Selling fast"])]
+    if action_rows.empty:
+        message_lines.append("All stock looks ok today.")
+    else:
+        message_lines.extend(
+            f"- {row['item'].title()}: {row['status']} ({_format_quantity(row['current_stock'])} left, {_format_quantity(row['recent_sold'])} sold recently)"
+            for _, row in action_rows.head(8).iterrows()
+        )
+    return recommendations, "\n".join(message_lines)
 
 
 def _generate_daily_summary_report(db_path: str | Path | None) -> tuple[str | None, str]:
@@ -2353,6 +2668,8 @@ def _review_readiness(transaction: Transaction, warnings: list[str]) -> str:
 
 def _warning_badge_class(warning: str) -> str:
     """Return a severity-aware warning badge class."""
+    if warning == PRICE_MEMORY_BADGE:
+        return "vl-success-badge"
     if warning in {"Inventory would go negative", "Possible duplicate"}:
         return "vl-warning-badge vl-warning-strong"
     return "vl-warning-badge"

@@ -316,6 +316,7 @@ body,
 .vl-closeout-card,
 .vl-pipeline-strip,
 .vl-small-model-card,
+.vl-guided-mode,
 .vl-command-center,
 .vl-seller-timeline,
 .vl-ai-mode-card,
@@ -337,6 +338,7 @@ body,
 .vl-closeout-card *,
 .vl-pipeline-strip *,
 .vl-small-model-card *,
+.vl-guided-mode *,
 .vl-command-center *,
 .vl-seller-timeline *,
 .vl-ai-mode-card *,
@@ -354,6 +356,7 @@ body,
 .vl-closeout-card h2,
 .vl-pipeline-strip h2,
 .vl-small-model-card h2,
+.vl-guided-mode h2,
 .vl-command-center h2,
 .vl-seller-timeline h2,
 .vl-ai-mode-card h2,
@@ -422,6 +425,56 @@ body,
   font-size: 14px !important;
   line-height: 1.4 !important;
   margin: 4px 0 0 !important;
+}
+
+.vl-guided-mode p {
+  color: #475247 !important;
+  font-size: 14px !important;
+  line-height: 1.4 !important;
+  margin: 4px 0 12px !important;
+}
+
+.vl-guided-mode ol {
+  display: grid !important;
+  gap: 10px !important;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)) !important;
+  list-style: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.vl-guided-mode li {
+  background: #f6f7f2 !important;
+  border: 1px solid var(--vl-border) !important;
+  border-radius: 10px !important;
+  padding: 10px !important;
+}
+
+.vl-guided-mode li strong,
+.vl-guided-mode li span {
+  display: block !important;
+}
+
+.vl-guided-mode li strong {
+  font-size: 14px !important;
+  font-weight: 900 !important;
+}
+
+.vl-guided-mode li span {
+  color: #475247 !important;
+  font-size: 12px !important;
+  line-height: 1.35 !important;
+  margin-top: 4px !important;
+}
+
+.vl-guided-done {
+  border-color: #9bd2ad !important;
+  background: #e7f6ed !important;
+}
+
+.vl-guided-next {
+  border-color: #e3bc5b !important;
+  background: #fff9e8 !important;
 }
 
 .vl-warning-row {
