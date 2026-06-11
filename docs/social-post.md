@@ -19,7 +19,7 @@ VoiceLedger turns those notes into a working ledger with:
 - human-friendly review cards and smart warning badges
 - save receipts that explain stock, credit, and amount side effects
 - seller setup for currency, stock threshold, and language style
-- English/Hinglish/Hindi-lite/Gujarati-lite local fallback examples
+- English/Hinglish/Hindi-lite/Gujarati-lite/Spanish/French/Portuguese local fallback examples
 - SQLite ledger
 - customer credit tracking
 - inventory tracking

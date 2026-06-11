@@ -59,6 +59,15 @@ TRANSACTION_TYPE_CHOICES = [
 ]
 PAYMENT_STATUS_CHOICES = ["paid", "unpaid", "credit", "unknown"]
 AI_MODE_CHOICES = ["Cloud AI first", "Local fallback only"]
+LANGUAGE_STYLE_CHOICES = [
+    "English",
+    "English + Hinglish",
+    "English + Gujarati-lite",
+    "Spanish",
+    "French",
+    "Portuguese",
+    "Multilingual",
+]
 DEMO_NOTES = [
     "Bought 60 mangoes",
     "Sold 12 mangoes, 20 each",
@@ -131,7 +140,7 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                         elem_classes="vl-panel",
                     )
                     language_style_input = gr.Dropdown(
-                        choices=["English", "English + Hinglish", "English + Gujarati-lite"],
+                        choices=LANGUAGE_STYLE_CHOICES,
                         label="Primary language style",
                         value=initial_settings["language_style"],
                     )
@@ -1119,6 +1128,9 @@ def _multilingual_examples_panel() -> str:
         <span><strong>English</strong><code>Sold 12 mangoes, 20 each</code><code>Paid 500 for supplies</code><code>Amit owes 100</code></span>
         <span><strong>Hinglish</strong><code>Amit ne 100 dene hai</code><code>Amit ne 50 diya</code><code>50 mango kharida</code></span>
         <span><strong>Gujarati-lite</strong><code>50 mango lidha</code><code>rent 300 diya</code><code>12 mango 20 each</code></span>
+        <span><strong>Spanish</strong><code>Vendí 12 mangos, 20 cada uno</code><code>Pagué 500 por suministros</code><code>Amit debe 100</code></span>
+        <span><strong>French</strong><code>Vendu 12 mangues, 20 chacun</code><code>Payé 500 pour fournitures</code><code>Amit doit 100</code></span>
+        <span><strong>Portuguese</strong><code>Vendi 12 mangas, 20 cada</code><code>Paguei 500 por suprimentos</code><code>Amit deve 100</code></span>
       </div>
     </section>
     """

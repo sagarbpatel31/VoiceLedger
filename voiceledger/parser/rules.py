@@ -9,79 +9,81 @@ from voiceledger.parser.base import Parser
 from voiceledger.parser.schema import Transaction
 
 
+TEXT_CHAR_CLASS = r"A-Za-zÀ-ÖØ-öø-ÿ"
+TEXT_VALUE_PATTERN = rf"[{TEXT_CHAR_CLASS}][{TEXT_CHAR_CLASS}\s-]*?"
 NUMBER_PATTERN = r"(?P<number>\d+(?:\.\d+)?)"
 SALE_PATTERN = re.compile(
-    rf"\b(?:sold|sell|sale of)\s+"
+    rf"\b(?:sold|sell|sale of|vend[ií]|vendu|vendi)\s+"
     rf"(?P<quantity>\d+(?:\.\d+)?)\s+"
-    rf"(?P<item>[a-zA-Z][a-zA-Z\s-]*?)"
+    rf"(?P<item>{TEXT_VALUE_PATTERN})"
     rf"(?:,|\s+at|\s+for|\s+@|\s+)?\s*"
     rf"(?P<unit_price>\d+(?:\.\d+)?)?\s*"
-    rf"(?:each|per\s+\w+)?\b",
+    rf"(?:each|per\s+\w+|cada(?:\s+uno)?|chacun|cada)?\b",
     re.IGNORECASE,
 )
 EXPENSE_PATTERN = re.compile(
-    rf"\b(?:paid|spent)\s+"
+    rf"\b(?:paid|spent|pagu[eé]|paguei|pay[eé])\s+"
     rf"(?P<amount>\d+(?:\.\d+)?)"
-    rf"(?:\s+(?:for|on))?\s*"
-    rf"(?P<item>[a-zA-Z][a-zA-Z\s-]*)?",
+    rf"(?:\s+(?:for|on|por|para|pour))?\s*"
+    rf"(?P<item>[{TEXT_CHAR_CLASS}][{TEXT_CHAR_CLASS}\s-]*)?",
     re.IGNORECASE,
 )
 SHORTHAND_SALE_PATTERN = re.compile(
-    rf"^\s*(?P<item>[a-zA-Z][a-zA-Z\s-]*?)\s+"
+    rf"^\s*(?P<item>{TEXT_VALUE_PATTERN})\s+"
     rf"(?P<quantity>\d+(?:\.\d+)?)\s*(?:x|@)\s*"
     rf"(?P<unit_price>\d+(?:\.\d+)?)\s*$",
     re.IGNORECASE,
 )
 QUANTITY_FIRST_SALE_PATTERN = re.compile(
     rf"^\s*(?P<quantity>\d+(?:\.\d+)?)\s+"
-    rf"(?P<item>[a-zA-Z][a-zA-Z\s-]*?)\s+"
-    rf"(?P<unit_price>\d+(?:\.\d+)?)\s*(?:each|per\s+\w+)?\s*$",
+    rf"(?P<item>{TEXT_VALUE_PATTERN})\s+"
+    rf"(?P<unit_price>\d+(?:\.\d+)?)\s*(?:each|per\s+\w+|cada(?:\s+uno)?|chacun|cada)?\s*$",
     re.IGNORECASE,
 )
 SHORTHAND_EXPENSE_PATTERN = re.compile(
-    rf"^\s*(?P<item>[a-zA-Z][a-zA-Z\s-]*?)\s+"
+    rf"^\s*(?P<item>{TEXT_VALUE_PATTERN})\s+"
     rf"(?P<amount>\d+(?:\.\d+)?)\s*$",
     re.IGNORECASE,
 )
 HINGLISH_EXPENSE_PATTERN = re.compile(
-    rf"^\s*(?P<item>[a-zA-Z][a-zA-Z\s-]*?)\s+"
+    rf"^\s*(?P<item>{TEXT_VALUE_PATTERN})\s+"
     rf"(?P<amount>\d+(?:\.\d+)?)\s+"
-    rf"(?:diya|dia|paid|pay|chukaya)\s*$",
+    rf"(?:diya|dia|paid|pay|chukaya|pagado|pago|pay[eé]|pagu[eé]|paguei|pagou)\s*$",
     re.IGNORECASE,
 )
 INVENTORY_PURCHASE_PATTERN = re.compile(
-    rf"\b(?:bought|purchased|buy|stocked|restocked)\s+"
+    rf"\b(?:bought|purchased|buy|stocked|restocked|compr[eé]|comprei|achet[eé])\s+"
     rf"(?P<quantity>\d+(?:\.\d+)?)\s+"
-    rf"(?P<item>[a-zA-Z][a-zA-Z\s-]*?)"
-    rf"(?:\s+(?:for|at)\s+(?P<amount>\d+(?:\.\d+)?))?\b",
+    rf"(?P<item>{TEXT_VALUE_PATTERN})"
+    rf"(?:\s+(?:for|at|por|para|pour)\s+(?P<amount>\d+(?:\.\d+)?))?\b",
     re.IGNORECASE,
 )
 QUANTITY_FIRST_INVENTORY_PATTERN = re.compile(
     rf"^\s*(?P<quantity>\d+(?:\.\d+)?)\s+"
-    rf"(?P<item>[a-zA-Z][a-zA-Z\s-]*?)\s+"
-    rf"(?:kharida|kharidi|khareeda|lidha|liya|li|bought|purchased)\s*$",
+    rf"(?P<item>{TEXT_VALUE_PATTERN})\s+"
+    rf"(?:kharida|kharidi|khareeda|lidha|liya|li|bought|purchased|comprado|compr[eé]|comprei|achet[eé])\s*$",
     re.IGNORECASE,
 )
 CREDIT_PATTERN = re.compile(
-    rf"^\s*(?P<customer>[a-zA-Z][a-zA-Z\s-]*?)\s+"
-    rf"(?:owes|owe|will\s+pay|to\s+pay)\s+"
+    rf"^\s*(?P<customer>{TEXT_VALUE_PATTERN})\s+"
+    rf"(?:owes|owe|will\s+pay|to\s+pay|debe|doit|deve)\s+"
     rf"(?P<amount>\d+(?:\.\d+)?)\b",
     re.IGNORECASE,
 )
 HINGLISH_CREDIT_PATTERN = re.compile(
-    rf"^\s*(?P<customer>[a-zA-Z][a-zA-Z\s-]*?)\s+"
+    rf"^\s*(?P<customer>{TEXT_VALUE_PATTERN})\s+"
     rf"(?:ne\s+)?(?P<amount>\d+(?:\.\d+)?)\s+"
     rf"(?:dene\s+hai|dena\s+hai|aapva\s+che|apvana\s+che|owes)\b",
     re.IGNORECASE,
 )
 CUSTOMER_PAYMENT_PATTERN = re.compile(
-    rf"^\s*(?P<customer>[a-zA-Z][a-zA-Z\s-]*?)\s+"
-    rf"(?:paid|pays|settled|repaid)\s+"
+    rf"^\s*(?P<customer>{TEXT_VALUE_PATTERN})\s+"
+    rf"(?:paid|pays|settled|repaid|pag[oó]|pagou|a\s+pay[eé])\s+"
     rf"(?P<amount>\d+(?:\.\d+)?)\b",
     re.IGNORECASE,
 )
 HINGLISH_PAYMENT_PATTERN = re.compile(
-    rf"^\s*(?P<customer>[a-zA-Z][a-zA-Z\s-]*?)\s+"
+    rf"^\s*(?P<customer>{TEXT_VALUE_PATTERN})\s+"
     rf"ne\s+(?P<amount>\d+(?:\.\d+)?)\s+"
     rf"(?:diya|dia|aapya|apya|paid|chukaya)\b",
     re.IGNORECASE,

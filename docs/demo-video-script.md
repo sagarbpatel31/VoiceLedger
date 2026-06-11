@@ -18,7 +18,7 @@ Click `Seed Demo Transactions`.
 
 Show `Seller Setup` and mention that business name, currency, low-stock threshold, and language style are saved in SQLite.
 
-Show the first-run guide and multilingual examples so judges see English, Hinglish, and Gujarati-lite seller notes.
+Show the first-run guide and multilingual examples so judges see English, Hinglish, Gujarati-lite, Spanish, French, and Portuguese seller notes.
 
 Open `Submission Story` and show the AI pipeline strip plus the “Why small models fit” card.
 

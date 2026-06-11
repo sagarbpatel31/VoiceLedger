@@ -125,6 +125,63 @@ def test_parse_hinglish_customer_payment() -> None:
     assert transaction.amount == 50
 
 
+def test_parse_spanish_seller_phrases() -> None:
+    sale = parse_transaction("Vendí 12 mangos, 20 cada uno")
+    expense = parse_transaction("Pagué 500 por suministros")
+    credit = parse_transaction("Amit debe 100")
+    payment = parse_transaction("Amit pagó 50")
+    stock = parse_transaction("Compré 50 mangos")
+
+    assert sale.transaction_type == "sale"
+    assert sale.amount == 240
+    assert expense.transaction_type == "expense"
+    assert expense.amount == 500
+    assert credit.transaction_type == "customer_credit"
+    assert credit.amount == 100
+    assert payment.transaction_type == "customer_payment"
+    assert payment.amount == 50
+    assert stock.transaction_type == "inventory_purchase"
+    assert stock.quantity == 50
+
+
+def test_parse_french_seller_phrases() -> None:
+    sale = parse_transaction("Vendu 12 mangues, 20 chacun")
+    expense = parse_transaction("Payé 500 pour fournitures")
+    credit = parse_transaction("Amit doit 100")
+    payment = parse_transaction("Amit a payé 50")
+    stock = parse_transaction("Acheté 50 mangues")
+
+    assert sale.transaction_type == "sale"
+    assert sale.amount == 240
+    assert expense.transaction_type == "expense"
+    assert expense.amount == 500
+    assert credit.transaction_type == "customer_credit"
+    assert credit.amount == 100
+    assert payment.transaction_type == "customer_payment"
+    assert payment.amount == 50
+    assert stock.transaction_type == "inventory_purchase"
+    assert stock.quantity == 50
+
+
+def test_parse_portuguese_seller_phrases() -> None:
+    sale = parse_transaction("Vendi 12 mangas, 20 cada")
+    expense = parse_transaction("Paguei 500 por suprimentos")
+    credit = parse_transaction("Amit deve 100")
+    payment = parse_transaction("Amit pagou 50")
+    stock = parse_transaction("Comprei 50 mangas")
+
+    assert sale.transaction_type == "sale"
+    assert sale.amount == 240
+    assert expense.transaction_type == "expense"
+    assert expense.amount == 500
+    assert credit.transaction_type == "customer_credit"
+    assert credit.amount == 100
+    assert payment.transaction_type == "customer_payment"
+    assert payment.amount == 50
+    assert stock.transaction_type == "inventory_purchase"
+    assert stock.quantity == 50
+
+
 def test_unknown_note_is_preserved() -> None:
     transaction = parse_transaction("Need to check yesterday")
 

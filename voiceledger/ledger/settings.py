@@ -19,7 +19,7 @@ DEFAULT_BUSINESS_SETTINGS = {
     "business_name": "VoiceLedger Seller",
     "currency_symbol": "₹",
     "low_stock_threshold": "5",
-    "language_style": "English + Hinglish",
+    "language_style": "Multilingual",
     "field_test_who": "A local informal seller who tracks sales, stock, customer dues, and profit from short notes.",
     "field_test_tried": "Voice notes, typed notes, customer credit, inventory updates, dashboard review, and exports.",
     "field_test_changed": "Added review warnings, save receipts, edit/delete, CSV export, and clearer demo health.",

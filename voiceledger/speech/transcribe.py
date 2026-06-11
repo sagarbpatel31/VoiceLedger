@@ -48,7 +48,6 @@ def transcribe_audio(audio_path: Any) -> str:
             str(path),
             beam_size=5,
             vad_filter=True,
-            language="en",
         )
         transcript = " ".join(segment.text.strip() for segment in segments if segment.text.strip())
     except TranscriptionError:

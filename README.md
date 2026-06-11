@@ -23,7 +23,7 @@ The submission version is feature-frozen around the complete demo loop:
 - Type or paste a transaction note.
 - Bulk import multiple pasted notes for review and editing.
 - Parse it with Modal-hosted NVIDIA Nemotron when configured, with local rules as a deterministic fallback.
-- Parse common English, Hinglish, Hindi-lite, and Gujarati-lite seller phrases with deterministic fallback rules.
+- Parse common English, Hinglish, Hindi-lite, Gujarati-lite, Spanish, French, and Portuguese seller phrases with deterministic fallback rules.
 - Review a human-friendly transaction card with warning badges before saving.
 - Correct transaction type, item, customer, quantity, price, amount, notes, and confidence directly before saving.
 - Choose `Cloud AI first` or `Local fallback only` from the Record screen to make the AI route explicit during demos.
@@ -61,7 +61,7 @@ Use the `Sections` navigation in the Space:
 
 ## Example Inputs
 
-Try these in `Record Text & Voice` or paste them together in `Bulk Import`. The Record page groups examples by English, Hinglish, and Gujarati-lite so the local seller language story is visible in the UI.
+Try these in `Record Text & Voice` or paste them together in `Bulk Import`. The Record page groups examples by English, Hinglish, Gujarati-lite, Spanish, French, and Portuguese so the local seller language story is visible in the UI.
 
 ```text
 Sold 12 mangoes, 20 each
@@ -70,6 +70,9 @@ Amit owes 100
 Bought 50 mangoes
 Amit ne 100 dene hai
 50 mango kharida
+Vendí 12 mangos, 20 cada uno
+Vendu 12 mangues, 20 chacun
+Vendi 12 mangas, 20 cada
 ```
 
 The same examples are available in `sample_data/demo_transactions.txt`.
@@ -89,6 +92,13 @@ The same examples are available in `sample_data/demo_transactions.txt`.
 | `Amit ne 50 diya` | Customer payment, customer `Amit`, amount `50` |
 | `50 mango kharida` | Inventory purchase, quantity `50`, item `mango` |
 | `50 mango lidha` | Inventory purchase, quantity `50`, item `mango` |
+| `Vendí 12 mangos, 20 cada uno` | Sale, quantity `12`, item `mangos`, unit price `20`, amount `240` |
+| `Pagué 500 por suministros` | Expense, amount `500`, item `suministros` |
+| `Amit debe 100` | Customer credit, customer `Amit`, amount `100` |
+| `Vendu 12 mangues, 20 chacun` | Sale, quantity `12`, item `mangues`, unit price `20`, amount `240` |
+| `Amit doit 100` | Customer credit, customer `Amit`, amount `100` |
+| `Vendi 12 mangas, 20 cada` | Sale, quantity `12`, item `mangas`, unit price `20`, amount `240` |
+| `Amit deve 100` | Customer credit, customer `Amit`, amount `100` |
 
 ## Demo Script
 
@@ -187,7 +197,7 @@ curl -X POST https://sagarpat3199--voiceledger-api.modal.run/parse \
 - Inline review editing lets sellers correct the parsed transaction before the save touches the ledger.
 - Seller setup persists business name, currency label, low-stock threshold, and language style in SQLite.
 - Field Test persists anonymized seller evidence and a workflow checklist in SQLite.
-- Local fallback rules include common English, Hinglish, Hindi-lite, and Gujarati-lite seller notes.
+- Local fallback rules include common English, Hinglish, Hindi-lite, Gujarati-lite, Spanish, French, and Portuguese seller notes.
 - Customer follow-up and inventory reorder helpers generate WhatsApp-ready action messages.
 - WhatsApp summaries provide a short copyable daily recap for sharing.
 - Bulk import splits pasted notes by line, parses each line, supports review edits, and saves all reviewed transactions.
