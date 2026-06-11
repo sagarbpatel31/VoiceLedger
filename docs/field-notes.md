@@ -39,6 +39,7 @@ This is a good small-model problem because the output space is constrained: a tr
 6. Edit or delete a transaction and show balances rebuilding.
 7. Run Daily Closeout, then export CSV, PDF report, and WhatsApp daily summary.
 8. Open Demo Health to show Modal, backend version, NVIDIA Nemotron parser status, SQLite, PDF, and endpoint checks.
+9. Open Submission Story to show the visual AI pipeline and why the constrained transaction schema fits small models.
 
 ## Submission Freeze
 
@@ -49,6 +50,7 @@ The hackathon version is intentionally frozen around the complete bookkeeping lo
 - Human-friendly review cards, warning badges, receipts, and save feedback.
 - Dashboard timeline, customer detail, inventory detail, ledger correction, Daily Closeout, PDF, CSV, and WhatsApp exports.
 - Demo Health for backend observability.
+- Submission Story for the AI pipeline and small-model fit rationale.
 
 This freeze keeps the demo reliable and makes the value proposition easier to judge.
 

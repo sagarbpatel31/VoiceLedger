@@ -297,16 +297,9 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
 
         with gr.Column(visible=False, elem_classes="vl-page-section") as story_page:
                 gr.HTML('<div id="vl-page-story" class="vl-page-anchor"></div>')
-                gr.HTML(
-                    """
-                    <section class="vl-info-panel">
-                      <h2>Built for a real informal seller</h2>
-                      <p>VoiceLedger is built for a local informal seller who tracks sales, customer dues, stock, and daily profit from short voice notes instead of spreadsheets.</p>
-                      <p><strong>Small-model fit:</strong> NVIDIA Nemotron handles messy transaction language through Modal, while deterministic rules keep the bookkeeping path reliable when the model is unavailable.</p>
-                      <p><strong>Demo path:</strong> seed demo data, record or type a transaction, save it, then inspect the dashboard, ledger, credit book, inventory, PDF report, WhatsApp summary, and CSV export.</p>
-                    </section>
-                    """
-                )
+                gr.HTML(_submission_story_panel())
+                gr.HTML(_ai_pipeline_strip())
+                gr.HTML(_small_model_fit_card())
                 seed_demo_button = gr.Button("Seed Demo Transactions", variant="primary")
                 seed_demo_status = gr.Markdown(elem_classes="vl-status")
 
@@ -780,6 +773,61 @@ def _today_work_panel() -> str:
         <span><strong>Customer Owes</strong>“Amit owes 100”</span>
         <span><strong>Customer Paid</strong>“Amit paid 50”</span>
         <span><strong>Bought Stock</strong>“Bought 50 mangoes”</span>
+      </div>
+    </section>
+    """
+
+
+def _submission_story_panel() -> str:
+    """Return the judge-facing story summary for the Submission Story page."""
+    return """
+    <section class="vl-info-panel">
+      <h2>Built for a real informal seller</h2>
+      <p>VoiceLedger is built for a local informal seller who tracks sales, customer dues, stock, and daily profit from short voice notes instead of spreadsheets.</p>
+      <p><strong>Demo path:</strong> seed demo data, record or type a transaction, review warnings, save it, then inspect the dashboard, ledger, credit book, inventory, PDF report, WhatsApp summary, and CSV export.</p>
+    </section>
+    """
+
+
+def _ai_pipeline_strip() -> str:
+    """Return a compact visual pipeline for the app's AI and ledger flow."""
+    stages = (
+        ("Voice/Text", "Seller note"),
+        ("Modal", "Cloud endpoint"),
+        ("NVIDIA Nemotron", "Strict JSON parse"),
+        ("Rule fallback", "Demo reliability"),
+        ("SQLite ledger", "Accounting state"),
+        ("Reports", "PDF, CSV, WhatsApp"),
+    )
+    stage_markup = "".join(
+        f"""
+        <li>
+          <strong>{escape(title)}</strong>
+          <span>{escape(body)}</span>
+        </li>
+        """
+        for title, body in stages
+    )
+    return f"""
+    <section class="vl-pipeline-strip">
+      <div>
+        <h2>AI pipeline</h2>
+        <p>VoiceLedger calls Modal first for speech and NVIDIA Nemotron parsing, then falls back to deterministic rules before saving to SQLite.</p>
+      </div>
+      <ol>{stage_markup}</ol>
+    </section>
+    """
+
+
+def _small_model_fit_card() -> str:
+    """Return the small-model fit explanation for judges."""
+    return """
+    <section class="vl-small-model-card">
+      <h2>Why small models fit</h2>
+      <div>
+        <span><strong>Constrained task</strong>Every note maps into one transaction schema: type, item, quantity, price, amount, customer, notes, and confidence.</span>
+        <span><strong>Deterministic ledger</strong>The model never owns balances. Python and SQLite rebuild customer credit, inventory, reports, and exports.</span>
+        <span><strong>Reliable fallback</strong>If Modal or Nemotron is unavailable, local rules keep the demo and bookkeeping flow working.</span>
       </div>
     </section>
     """

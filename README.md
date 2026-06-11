@@ -92,6 +92,7 @@ Capture these three moments for the Space README, demo video, or social post:
 - `Record Text & Voice`: Today’s Work quick actions, review card, warning badges, and save receipt.
 - `Dashboard`: metrics, sales/expense timeline, top-selling item, low-stock table, and outstanding credit.
 - `Reports & PDF` plus `Ledger`: Daily Closeout, PDF/WhatsApp export, CSV download, and ledger correction.
+- `Submission Story`: AI pipeline strip and “Why small models fit” card for the Modal/Nemotron story.
 
 Supporting submission assets:
 
@@ -167,6 +168,7 @@ curl -X POST https://sagarpat3199--voiceledger-api.modal.run/parse \
 - Modal integration lives in `backend/`; if endpoint URLs are not configured, local fallback stays active.
 - NVIDIA Nemotron 3 Nano 4B is used by the Modal parser endpoint and is also available as a local `transformers` parser provider for strict JSON transaction extraction.
 - The Demo Health section checks Modal reachability, deployed backend version, NVIDIA Nemotron parser status, SQLite availability, PDF support, and configured endpoint status.
+- The Submission Story section shows the AI pipeline and explains why a constrained transaction schema is a strong small-model fit.
 - Ledger edits and deletes rebuild customer balances and inventory from saved transactions to avoid stale side effects.
 - CSV export downloads all ledger rows in the same column order as the app table.
 - The UI uses a custom theme, responsive spacing, and dashboard cards instead of the default Gradio look.

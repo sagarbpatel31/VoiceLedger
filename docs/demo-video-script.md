@@ -16,6 +16,8 @@ On the first screen, show the `Judge Demo Flow` panel:
 
 Click `Seed Demo Transactions`.
 
+Open `Submission Story` and show the AI pipeline strip plus the “Why small models fit” card.
+
 Click `Check Demo Health` from the launchpad, or open `Demo Health`, and show:
 
 - Modal backend status
@@ -67,6 +69,7 @@ Open `Reports & PDF`, run `Daily Closeout`, then generate the PDF, WhatsApp summ
 Suggested screenshot/GIF moments:
 
 - Record flow: Today’s Work actions, review card, parse source, warning badges, save receipt.
+- Submission Story: AI pipeline and small-model fit card.
 - Dashboard: sales, expenses, profit, credit, timeline, top item, low-stock inventory.
 - Reports/Ledger: Daily Closeout, PDF download, WhatsApp summary, CSV export.
 

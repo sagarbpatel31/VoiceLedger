@@ -25,6 +25,7 @@ VoiceLedger turns those notes into a working ledger with:
 - customer and inventory detail drilldowns
 - PDF, CSV, and WhatsApp summaries
 - one-click Daily Closeout
+- a visible AI pipeline and small-model fit explanation for judges
 
 For judges: the demo flow is seed data -> record/type -> review warnings -> save receipt -> dashboard/reports. The Space shows Modal health, Nemotron status, SQLite, PDF support, and endpoint configuration.
 

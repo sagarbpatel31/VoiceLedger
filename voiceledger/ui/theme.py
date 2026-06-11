@@ -313,7 +313,9 @@ body,
 .vl-review-card,
 .vl-receipt-card,
 .vl-detail-card,
-.vl-closeout-card {
+.vl-closeout-card,
+.vl-pipeline-strip,
+.vl-small-model-card {
   background: #ffffff !important;
   border: 1px solid var(--vl-border) !important;
   border-radius: 14px !important;
@@ -326,7 +328,9 @@ body,
 .vl-review-card *,
 .vl-receipt-card *,
 .vl-detail-card *,
-.vl-closeout-card * {
+.vl-closeout-card *,
+.vl-pipeline-strip *,
+.vl-small-model-card * {
   color: var(--vl-text) !important;
   opacity: 1 !important;
 }
@@ -335,7 +339,9 @@ body,
 .vl-review-card h2,
 .vl-receipt-card h2,
 .vl-detail-card h2,
-.vl-closeout-card h2 {
+.vl-closeout-card h2,
+.vl-pipeline-strip h2,
+.vl-small-model-card h2 {
   font-size: 18px !important;
   font-weight: 800 !important;
   margin: 0 0 10px !important;
@@ -343,7 +349,8 @@ body,
 
 .vl-today-panel div,
 .vl-review-grid,
-.vl-closeout-grid {
+.vl-closeout-grid,
+.vl-small-model-card div {
   display: grid !important;
   gap: 10px !important;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)) !important;
@@ -351,7 +358,8 @@ body,
 
 .vl-today-panel span,
 .vl-review-grid div,
-.vl-closeout-grid span {
+.vl-closeout-grid span,
+.vl-small-model-card span {
   background: #f6f7f2 !important;
   border: 1px solid var(--vl-border) !important;
   border-radius: 10px !important;
@@ -361,7 +369,8 @@ body,
 
 .vl-today-panel strong,
 .vl-review-grid span,
-.vl-closeout-grid strong {
+.vl-closeout-grid strong,
+.vl-small-model-card strong {
   color: #475247 !important;
   display: block !important;
   font-size: 12px !important;
@@ -379,7 +388,8 @@ body,
 .vl-review-header p,
 .vl-receipt-card p,
 .vl-detail-card p,
-.vl-closeout-card p {
+.vl-closeout-card p,
+.vl-pipeline-strip p {
   color: #475247 !important;
   font-size: 14px !important;
   line-height: 1.4 !important;
@@ -416,6 +426,50 @@ body,
 
 .vl-receipt-card {
   border-color: #9bd2ad !important;
+}
+
+.vl-pipeline-strip ol {
+  display: grid !important;
+  gap: 8px !important;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)) !important;
+  list-style: none !important;
+  margin: 14px 0 0 !important;
+  padding: 0 !important;
+}
+
+.vl-pipeline-strip li {
+  background: #f6f7f2 !important;
+  border: 1px solid var(--vl-border) !important;
+  border-radius: 12px !important;
+  min-height: 84px !important;
+  padding: 12px !important;
+  position: relative !important;
+}
+
+.vl-pipeline-strip li::after {
+  background: #4aa357 !important;
+  border-radius: 999px !important;
+  content: "" !important;
+  height: 4px !important;
+  left: 12px !important;
+  position: absolute !important;
+  right: 12px !important;
+  top: -3px !important;
+}
+
+.vl-pipeline-strip li strong {
+  display: block !important;
+  font-size: 14px !important;
+  font-weight: 900 !important;
+}
+
+.vl-pipeline-strip li span,
+.vl-small-model-card span {
+  color: #475247 !important;
+  display: block !important;
+  font-size: 13px !important;
+  line-height: 1.35 !important;
+  margin-top: 4px !important;
 }
 
 .vl-chip {

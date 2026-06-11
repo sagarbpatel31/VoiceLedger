@@ -12,6 +12,8 @@
 
 - `Sections` navigation opens the correct page and no old Gradio tab row is visible.
 - First screen shows `1. Seed demo data -> 2. Record/type -> 3. Save -> 4. View dashboard/reports`.
+- `Submission Story` shows the AI pipeline strip.
+- `Submission Story` shows the “Why small models fit” card.
 - `Demo Health` shows Modal reachable and backend version.
 - `Demo Health` shows NVIDIA Nemotron parser status.
 - Text parse works with `Sold 12 mangoes, 20 each`.
@@ -43,6 +45,7 @@
 ## Capture Assets
 
 - Screenshot or GIF: Record flow with review card, parse source, warning badges, and save receipt.
+- Screenshot or GIF: Submission Story with AI pipeline and small-model explanation.
 - Screenshot or GIF: Dashboard with seeded transactions and timeline.
 - Screenshot or GIF: Daily Closeout plus PDF, WhatsApp, and CSV exports.
 

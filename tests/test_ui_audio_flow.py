@@ -95,6 +95,21 @@ def test_judge_demo_panel_surfaces_submission_flow() -> None:
     assert "NVIDIA Nemotron parser" in panel
 
 
+def test_submission_story_surfaces_pipeline_and_small_model_fit() -> None:
+    story = gradio_app._submission_story_panel()
+    pipeline = gradio_app._ai_pipeline_strip()
+    small_model = gradio_app._small_model_fit_card()
+
+    assert "Built for a real informal seller" in story
+    assert "AI pipeline" in pipeline
+    assert "NVIDIA Nemotron" in pipeline
+    assert "Rule fallback" in pipeline
+    assert "SQLite ledger" in pipeline
+    assert "Why small models fit" in small_model
+    assert "Constrained task" in small_model
+    assert "Deterministic ledger" in small_model
+
+
 def test_demo_health_placeholder_includes_nemotron_status() -> None:
     placeholder = gradio_app._demo_health_placeholder()
 
