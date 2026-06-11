@@ -317,7 +317,9 @@ body,
 .vl-pipeline-strip,
 .vl-small-model-card,
 .vl-command-center,
-.vl-seller-timeline {
+.vl-seller-timeline,
+.vl-ai-mode-card,
+.vl-insight-coach {
   background: #ffffff !important;
   border: 1px solid var(--vl-border) !important;
   border-radius: 14px !important;
@@ -334,7 +336,9 @@ body,
 .vl-pipeline-strip *,
 .vl-small-model-card *,
 .vl-command-center *,
-.vl-seller-timeline * {
+.vl-seller-timeline *,
+.vl-ai-mode-card *,
+.vl-insight-coach * {
   color: var(--vl-text) !important;
   opacity: 1 !important;
 }
@@ -347,7 +351,9 @@ body,
 .vl-pipeline-strip h2,
 .vl-small-model-card h2,
 .vl-command-center h2,
-.vl-seller-timeline h2 {
+.vl-seller-timeline h2,
+.vl-ai-mode-card h2,
+.vl-insight-coach h2 {
   font-size: 18px !important;
   font-weight: 800 !important;
   margin: 0 0 10px !important;
@@ -398,7 +404,9 @@ body,
 .vl-receipt-card p,
 .vl-detail-card p,
 .vl-closeout-card p,
-.vl-pipeline-strip p {
+.vl-pipeline-strip p,
+.vl-ai-mode-card p,
+.vl-insight-coach p {
   color: #475247 !important;
   font-size: 14px !important;
   line-height: 1.4 !important;
@@ -513,6 +521,56 @@ body,
   color: #475247 !important;
   font-size: 13px !important;
   margin-top: 4px !important;
+}
+
+.vl-ai-mode-card {
+  border-left: 5px solid #357abd !important;
+}
+
+.vl-ai-mode-local {
+  border-left-color: #9a5b14 !important;
+}
+
+.vl-insight-coach ol {
+  display: grid !important;
+  gap: 10px !important;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)) !important;
+  list-style: none !important;
+  margin: 12px 0 0 !important;
+  padding: 0 !important;
+}
+
+.vl-insight-coach li {
+  background: #f6f7f2 !important;
+  border: 1px solid var(--vl-border) !important;
+  border-radius: 12px !important;
+  padding: 12px !important;
+}
+
+.vl-insight-coach li span {
+  background: #eef6ed !important;
+  border: 1px solid #b9d4b4 !important;
+  border-radius: 999px !important;
+  color: #183525 !important;
+  display: inline-block !important;
+  font-size: 11px !important;
+  font-weight: 900 !important;
+  margin-bottom: 8px !important;
+  padding: 4px 8px !important;
+  text-transform: uppercase !important;
+}
+
+.vl-insight-coach li strong {
+  display: block !important;
+  font-size: 15px !important;
+  font-weight: 900 !important;
+}
+
+.vl-insight-coach li p {
+  color: #475247 !important;
+  font-size: 13px !important;
+  line-height: 1.35 !important;
+  margin: 6px 0 0 !important;
 }
 
 .vl-status-chip {

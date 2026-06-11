@@ -42,16 +42,27 @@ class TranscriptionResult:
 def transcribe_audio(
     audio_path: Any,
     fallback: Callable[[Any], str],
+    force_local: bool = False,
 ) -> str:
     """Transcribe audio through Modal, falling back locally if unavailable."""
-    return transcribe_audio_result(audio_path, fallback=fallback).transcript
+    return transcribe_audio_result(audio_path, fallback=fallback, force_local=force_local).transcript
 
 
 def transcribe_audio_result(
     audio_path: Any,
     fallback: Callable[[Any], str],
+    force_local: bool = False,
 ) -> TranscriptionResult:
     """Transcribe audio and return source metadata for UI observability."""
+    if force_local:
+        transcript = fallback(audio_path)
+        return TranscriptionResult(
+            transcript=transcript,
+            source="local",
+            message="Transcribed locally with faster-whisper.",
+            fallback_reason="Cloud AI is disabled for local-first mode.",
+        )
+
     path = _coerce_audio_path(audio_path)
     endpoint_url = os.getenv(MODAL_TRANSCRIBE_URL_ENV)
     if not endpoint_url or path is None:
@@ -103,16 +114,26 @@ def transcribe_audio_result(
 def parse_transaction(
     text: str,
     fallback: Callable[[str], Transaction],
+    force_local: bool = False,
 ) -> Transaction:
     """Parse transaction text through Modal, falling back locally if unavailable."""
-    return parse_transaction_result(text, fallback=fallback).transaction
+    return parse_transaction_result(text, fallback=fallback, force_local=force_local).transaction
 
 
 def parse_transaction_result(
     text: str,
     fallback: Callable[[str], Transaction],
+    force_local: bool = False,
 ) -> ParseResult:
     """Parse text and return source metadata for UI observability."""
+    if force_local:
+        return ParseResult(
+            transaction=fallback(text),
+            source="local",
+            message="Parsed locally with the rule parser.",
+            fallback_reason="Cloud AI is disabled for local-first mode.",
+        )
+
     endpoint_url = os.getenv(MODAL_PARSE_URL_ENV)
     if not endpoint_url:
         return ParseResult(

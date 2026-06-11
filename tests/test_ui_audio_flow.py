@@ -10,7 +10,7 @@ def test_transcribe_and_parse_audio_handles_transcription_error(monkeypatch) -> 
     def fail_transcription(_: object) -> str:
         raise RuntimeError("test failure")
 
-    monkeypatch.setattr(gradio_app.modal_api, "transcribe_audio_result", lambda audio, fallback: fail_transcription(audio))
+    monkeypatch.setattr(gradio_app.modal_api, "transcribe_audio_result", lambda audio, fallback, **kwargs: fail_transcription(audio))
 
     transcript, structured, state, status, review_card = gradio_app._transcribe_and_parse_audio("audio.wav")
 
@@ -25,7 +25,7 @@ def test_transcribe_and_parse_audio_parses_transcript(monkeypatch) -> None:
     monkeypatch.setattr(
         gradio_app.modal_api,
         "transcribe_audio_result",
-        lambda audio, fallback: TranscriptionResult(
+        lambda audio, fallback, **kwargs: TranscriptionResult(
             transcript="Sold 12 mangoes, 20 each",
             source="modal",
             message="Transcribed by Modal faster-whisper endpoint.",
@@ -34,7 +34,7 @@ def test_transcribe_and_parse_audio_parses_transcript(monkeypatch) -> None:
     monkeypatch.setattr(
         gradio_app.modal_api,
         "parse_transaction_result",
-        lambda text, fallback: ParseResult(
+        lambda text, fallback, **kwargs: ParseResult(
             transaction=fallback(text),
             source="local",
             message="Parsed locally with the rule parser after Modal failed.",
@@ -58,7 +58,7 @@ def test_parse_note_surfaces_modal_source(monkeypatch) -> None:
     monkeypatch.setattr(
         gradio_app.modal_api,
         "parse_transaction_result",
-        lambda text, fallback: ParseResult(
+        lambda text, fallback, **kwargs: ParseResult(
             transaction=fallback(text),
             source="modal",
             message="Parsed by Modal using NVIDIA Nemotron.",
@@ -70,6 +70,30 @@ def test_parse_note_surfaces_modal_source(monkeypatch) -> None:
     assert structured["transaction_type"] == "expense"
     assert state == structured
     assert "NVIDIA Nemotron" in status
+    assert "Safe to save" in review_card
+
+
+def test_parse_note_local_mode_surfaces_local_fallback(monkeypatch) -> None:
+    captured = {}
+
+    def fake_parse(text, fallback, **kwargs):
+        captured.update(kwargs)
+        return ParseResult(
+            transaction=fallback(text),
+            source="local",
+            message="Parsed locally with the rule parser.",
+            fallback_reason="Cloud AI is disabled for local-first mode.",
+        )
+
+    monkeypatch.setattr(gradio_app.modal_api, "parse_transaction_result", fake_parse)
+
+    structured, state, status, review_card = gradio_app._parse_note("Amit owes 100", ai_mode="Local fallback only")
+
+    assert captured["force_local"] is True
+    assert structured["transaction_type"] == "customer_credit"
+    assert state == structured
+    assert "Local fallback" in status
+    assert "local-first mode" in status
     assert "Safe to save" in review_card
 
 
@@ -196,3 +220,15 @@ def test_customer_followup_and_reorder_helpers(tmp_path) -> None:
     assert "₹60" in followup
     assert "onions" in set(reorder["item"])
     assert "Onions" in message
+
+
+def test_insight_coach_surfaces_credit_and_stock_actions(tmp_path) -> None:
+    db_path = tmp_path / "voiceledger.sqlite3"
+    gradio_app.add_transaction(gradio_app.local_parse_transaction("Amit owes 100"), db_path)
+    gradio_app.add_transaction(gradio_app.local_parse_transaction("Bought 3 onions"), db_path)
+
+    coach = gradio_app._insight_coach(db_path)
+
+    assert "Insight Coach" in coach
+    assert "Follow up with Amit" in coach
+    assert "Restock onions" in coach

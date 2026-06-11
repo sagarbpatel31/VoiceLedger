@@ -24,10 +24,11 @@ The submission version is feature-frozen around the complete demo loop:
 - Parse it with Modal-hosted NVIDIA Nemotron when configured, with local rules as a deterministic fallback.
 - Parse common English, Hinglish, Hindi-lite, and Gujarati-lite seller phrases with deterministic fallback rules.
 - Review a human-friendly transaction card with warning badges before saving.
+- Choose `Cloud AI first` or `Local fallback only` from the Record screen to make the AI route explicit during demos.
 - Save the structured transaction to SQLite.
 - See a “Saved just now” receipt with bookkeeping side effects.
 - View the ledger, customer credit book, and inventory in a Gradio interface.
-- Monitor business insights, a Command Center, a seller-day activity timeline, and a daily sales/expense chart.
+- Monitor business insights, an Insight Coach, a Command Center, a seller-day activity timeline, and a daily sales/expense chart.
 - Use a mobile-first, business-style Gradio interface with custom styling.
 - Run a Daily Closeout that prepares PDF, WhatsApp summary, and CSV exports together.
 - Download a Daily Summary PDF report.
@@ -37,7 +38,7 @@ The submission version is feature-frozen around the complete demo loop:
 - Edit or delete saved transactions while keeping customer credit and inventory balances consistent.
 - Export the ledger as CSV for spreadsheet sharing.
 
-When Modal endpoints are configured, parsing runs through the Modal backend using `nvidia/NVIDIA-Nemotron-3-Nano-4B` via Hugging Face Inference. If Modal is unavailable or returns an invalid response, VoiceLedger falls back to the local rule parser for demo reliability.
+When Modal endpoints are configured, parsing runs through the Modal backend using `nvidia/NVIDIA-Nemotron-3-Nano-4B` via Hugging Face Inference. If Modal is unavailable or returns an invalid response, VoiceLedger falls back to the local rule parser for demo reliability. The `Local fallback only` mode intentionally skips Modal for local-first demos and reliability checks.
 
 VoiceLedger is designed for the Build Small Hackathon Backyard AI track: a concrete, real-world bookkeeping problem for informal sellers and home businesses. The demo story is anonymized around a local seller who tracks sales, customer dues, stock, and daily profit from short voice notes.
 
@@ -47,10 +48,11 @@ Use the `Sections` navigation in the Space:
 
 1. `Record Text & Voice`: click `Seed Demo Transactions`, then type or speak `Sold 12 mangoes, 20 each`.
 2. Parse and inspect the review card; warning badges show missing fields, low confidence, duplicate risk, or negative stock.
-3. Save the reviewed transaction and show the “Saved just now” receipt.
-4. Open `Dashboard`, `Customer Credit`, `Inventory`, and `Ledger` to show timeline, details, and automatic bookkeeping updates.
-5. Open `Reports & PDF` to run Daily Closeout, download the PDF/CSV, and generate the WhatsApp summary.
-6. Open `Demo Health` to show Modal backend status, deployed backend version, NVIDIA Nemotron parser status, SQLite, PDF support, and configured endpoints.
+3. Toggle `Cloud AI first` versus `Local fallback only` to show the Modal/Nemotron path and deterministic backup.
+4. Save the reviewed transaction and show the “Saved just now” receipt.
+5. Open `Dashboard`, `Customer Credit`, `Inventory`, and `Ledger` to show the Insight Coach, timeline, details, and automatic bookkeeping updates.
+6. Open `Reports & PDF` to run Daily Closeout, download the PDF/CSV, and generate the WhatsApp summary.
+7. Open `Demo Health` to show Modal backend status, deployed backend version, NVIDIA Nemotron parser status, SQLite, PDF support, and configured endpoints.
 
 ## Example Inputs
 
@@ -90,7 +92,7 @@ The same examples are available in `sample_data/demo_transactions.txt`.
 3. Open `Record Text & Voice`, speak or type `Sold 12 mangoes, 20 each`, parse it, and review the human-readable transaction card.
 4. Show the parse status and warning badges: Modal/NVIDIA Nemotron when available, local fallback when needed.
 5. Save the transaction and show the Command Center plus the receipt with stock, customer, or amount side effects.
-6. Open `Dashboard`, `Customer Credit`, and `Inventory` to show timeline charts, customer detail, follow-up message, inventory detail, reorder list, and automatic bookkeeping updates.
+6. Open `Dashboard`, `Customer Credit`, and `Inventory` to show the Insight Coach, timeline charts, customer detail, follow-up message, inventory detail, reorder list, and automatic bookkeeping updates.
 7. Open `Ledger`, load a transaction by id, update or delete it, then show refreshed balances.
 8. Run Daily Closeout from `Reports & PDF`, then download CSV/PDF and generate the WhatsApp summary.
 9. Click `Check Demo Health` from the launchpad, or open `Demo Health`, to show Modal health, deployed backend version, Nemotron status, database, PDF, and endpoint checks.
@@ -100,7 +102,7 @@ The same examples are available in `sample_data/demo_transactions.txt`.
 Capture these three moments for the Space README, demo video, or social post:
 
 - `Record Text & Voice`: Today’s Work quick actions, review card, warning badges, and save receipt.
-- `Dashboard`: Command Center, metrics, seller-day activity timeline, sales/expense timeline, top-selling item, low-stock table, and outstanding credit.
+- `Dashboard`: Insight Coach, metrics, seller-day activity timeline, sales/expense timeline, top-selling item, low-stock table, and outstanding credit.
 - `Reports & PDF` plus `Ledger`: Daily Closeout, PDF/WhatsApp export, CSV download, and ledger correction.
 - `Submission Story`: AI pipeline strip and “Why small models fit” card for the Modal/Nemotron story.
 
@@ -171,6 +173,7 @@ curl -X POST https://sagarpat3199--voiceledger-api.modal.run/parse \
 - PDF reports are generated with fpdf2 from the current SQLite ledger state.
 - Parser architecture supports rule-based and Hugging Face Inference API compatible LLM parsers, with rule fallback on LLM failure.
 - The dashboard shows daily sales, expenses, profit, outstanding credit, top sellers, and low-stock alerts from saved data.
+- The Insight Coach turns those dashboard signals into next actions, such as credit follow-up, restocking, and daily closeout.
 - Customer and inventory detail views show transaction history for one customer or item.
 - Smart review warnings flag low confidence, missing fields, duplicate risk, and negative stock before save.
 - Seller setup persists business name, currency label, low-stock threshold, and language style in SQLite.
@@ -179,6 +182,7 @@ curl -X POST https://sagarpat3199--voiceledger-api.modal.run/parse \
 - WhatsApp summaries provide a short copyable daily recap for sharing.
 - Bulk import splits pasted notes by line, parses each line, supports review edits, and saves all reviewed transactions.
 - Modal integration lives in `backend/`; if endpoint URLs are not configured, local fallback stays active.
+- The Record screen includes a local-only AI mode that skips Modal while preserving the same transaction review and save flow.
 - NVIDIA Nemotron 3 Nano 4B is used by the Modal parser endpoint and is also available as a local `transformers` parser provider for strict JSON transaction extraction.
 - The Demo Health section checks Modal reachability, deployed backend version, NVIDIA Nemotron parser status, SQLite availability, PDF support, and configured endpoint status.
 - The Submission Story section shows the AI pipeline and explains why a constrained transaction schema is a strong small-model fit.

@@ -113,6 +113,25 @@ def test_parse_transaction_result_reports_fallback_reason(monkeypatch) -> None:
     assert result.transaction.amount == 240
 
 
+def test_parse_transaction_result_force_local_skips_modal(monkeypatch) -> None:
+    monkeypatch.setenv(modal_api.MODAL_PARSE_URL_ENV, "https://modal.example/parse")
+
+    def fake_post(*args, **kwargs) -> None:
+        raise AssertionError("Modal should not be called in local-first mode")
+
+    monkeypatch.setattr(modal_api.requests, "post", fake_post)
+
+    result = modal_api.parse_transaction_result(
+        "Amit owes 100",
+        fallback=local_parse_transaction,
+        force_local=True,
+    )
+
+    assert result.source == "local"
+    assert result.transaction.transaction_type == "customer_credit"
+    assert "local-first mode" in result.fallback_reason
+
+
 def test_transcribe_audio_uses_modal_response(tmp_path: Path, monkeypatch) -> None:
     audio_path = tmp_path / "audio.wav"
     audio_path.write_bytes(b"audio")
@@ -143,6 +162,27 @@ def test_transcribe_audio_result_reports_modal_source(tmp_path: Path, monkeypatc
     assert result.source == "modal"
     assert result.transcript == "Sold 12 mangoes"
     assert result.fallback_reason is None
+
+
+def test_transcribe_audio_result_force_local_skips_modal(tmp_path: Path, monkeypatch) -> None:
+    audio_path = tmp_path / "audio.wav"
+    audio_path.write_bytes(b"audio")
+    monkeypatch.setenv(modal_api.MODAL_TRANSCRIBE_URL_ENV, "https://modal.example/transcribe")
+
+    def fake_post(*args, **kwargs) -> None:
+        raise AssertionError("Modal should not be called in local-first mode")
+
+    monkeypatch.setattr(modal_api.requests, "post", fake_post)
+
+    result = modal_api.transcribe_audio_result(
+        audio_path,
+        fallback=lambda _: "local transcript",
+        force_local=True,
+    )
+
+    assert result.source == "local"
+    assert result.transcript == "local transcript"
+    assert "local-first mode" in result.fallback_reason
 
 
 def test_transcribe_audio_accepts_gradio_dict_payload(tmp_path: Path, monkeypatch) -> None:

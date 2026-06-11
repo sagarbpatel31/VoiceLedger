@@ -58,6 +58,7 @@ TRANSACTION_TYPE_CHOICES = [
     "unknown",
 ]
 PAYMENT_STATUS_CHOICES = ["paid", "unpaid", "credit", "unknown"]
+AI_MODE_CHOICES = ["Cloud AI first", "Local fallback only"]
 DEMO_NOTES = [
     "Bought 60 mangoes",
     "Sold 12 mangoes, 20 each",
@@ -137,6 +138,16 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                     value=_seller_setup_status(initial_settings),
                     elem_classes="vl-status",
                 )
+                gr.HTML(_section_heading("AI Mode"))
+                with gr.Row():
+                    ai_mode_input = gr.Dropdown(
+                        choices=AI_MODE_CHOICES,
+                        label="Parser and speech mode",
+                        value="Cloud AI first",
+                        elem_classes="vl-panel",
+                    )
+                    ai_mode_status_output = gr.HTML(_ai_mode_status("Cloud AI first"))
+                ai_mode_input.change(fn=_ai_mode_status, inputs=ai_mode_input, outputs=ai_mode_status_output)
                 gr.HTML(_judge_demo_panel())
                 gr.HTML(_today_work_panel())
                 with gr.Row():
@@ -216,13 +227,13 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                 status_output = gr.Markdown(elem_classes="vl-status")
 
                 parse_button.click(
-                    fn=lambda note: _parse_note(note, db_path),
-                    inputs=note_input,
+                    fn=lambda note, ai_mode: _parse_note(note, db_path, ai_mode),
+                    inputs=[note_input, ai_mode_input],
                     outputs=[structured_output, parsed_state, status_output, review_card_output],
                 )
                 transcribe_button.click(
-                    fn=lambda audio_path: _transcribe_and_parse_audio(audio_path, db_path),
-                    inputs=audio_input,
+                    fn=lambda audio_path, ai_mode: _transcribe_and_parse_audio(audio_path, db_path, ai_mode),
+                    inputs=[audio_input, ai_mode_input],
                     outputs=[transcript_output, structured_output, parsed_state, status_output, review_card_output],
                 )
                 example_sale_button.click(fn=lambda: "Sold 12 mangoes, 20 each", inputs=None, outputs=note_input)
@@ -266,6 +277,7 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                         wrap=True,
                         elem_classes="vl-panel",
                     )
+                insight_coach_output = gr.HTML(_insight_coach(db_path))
                 seller_day_output = gr.HTML(_seller_day_timeline(db_path))
                 refresh_dashboard_button.click(
                     fn=lambda: _get_dashboard_data(db_path),
@@ -279,6 +291,7 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                         timeline_output,
                         top_items_output,
                         low_stock_output,
+                        insight_coach_output,
                         seller_day_output,
                     ],
                 )
@@ -294,6 +307,7 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                         timeline_output,
                         top_items_output,
                         low_stock_output,
+                        insight_coach_output,
                         seller_day_output,
                     ],
                 )
@@ -683,6 +697,7 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                 timeline_output,
                 top_items_output,
                 low_stock_output,
+                insight_coach_output,
                 seller_day_output,
                 ledger_output,
                 customer_balances_output,
@@ -726,6 +741,7 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                 timeline_output,
                 top_items_output,
                 low_stock_output,
+                insight_coach_output,
                 seller_day_output,
                 ledger_output,
                 customer_balances_output,
@@ -746,6 +762,7 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                 timeline_output,
                 top_items_output,
                 low_stock_output,
+                insight_coach_output,
                 seller_day_output,
                 ledger_output,
                 customer_balances_output,
@@ -766,6 +783,7 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                 timeline_output,
                 top_items_output,
                 low_stock_output,
+                insight_coach_output,
                 seller_day_output,
                 ledger_output,
                 customer_balances_output,
@@ -786,6 +804,7 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                 timeline_output,
                 top_items_output,
                 low_stock_output,
+                insight_coach_output,
                 seller_day_output,
                 ledger_output,
                 customer_balances_output,
@@ -812,6 +831,7 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                 timeline_output,
                 top_items_output,
                 low_stock_output,
+                insight_coach_output,
                 seller_day_output,
                 inventory_output,
             ],
@@ -986,6 +1006,28 @@ def _reset_record_form() -> tuple[str, str, dict[str, Any], None, str, str, str]
     return "", "", _empty_transaction_payload(), None, "Ready for the next transaction.", _empty_review_card(), _empty_receipt_card()
 
 
+def _force_local_mode(ai_mode: str | None) -> bool:
+    """Return whether the UI should skip Modal and use local fallbacks only."""
+    return ai_mode == "Local fallback only"
+
+
+def _ai_mode_status(ai_mode: str | None) -> str:
+    """Render the current AI mode as a visible status card."""
+    if _force_local_mode(ai_mode):
+        return """
+        <section class="vl-ai-mode-card vl-ai-mode-local">
+          <h2>Local fallback only</h2>
+          <p>VoiceLedger skips Modal and uses local faster-whisper/rule parsing. Useful for offline-style demos and reliability checks.</p>
+        </section>
+        """
+    return """
+    <section class="vl-ai-mode-card">
+      <h2>Cloud AI first</h2>
+      <p>The Space calls Modal first for speech and NVIDIA Nemotron parsing, then falls back locally if the cloud path is unavailable.</p>
+    </section>
+    """
+
+
 def _demo_health_placeholder() -> pd.DataFrame:
     """Return placeholder health rows so the demo health table is never blank."""
     return pd.DataFrame(
@@ -1019,9 +1061,17 @@ def _demo_health_placeholder() -> pd.DataFrame:
     )
 
 
-def _parse_note(note: str, db_path: str | Path | None = None) -> tuple[dict[str, Any], dict[str, Any], str, str]:
+def _parse_note(
+    note: str,
+    db_path: str | Path | None = None,
+    ai_mode: str = "Cloud AI first",
+) -> tuple[dict[str, Any], dict[str, Any], str, str]:
     """Parse a note and return display data plus serializable state."""
-    result = modal_api.parse_transaction_result(note, fallback=local_parse_transaction)
+    result = modal_api.parse_transaction_result(
+        note,
+        fallback=local_parse_transaction,
+        force_local=_force_local_mode(ai_mode),
+    )
     transaction = result.transaction
     payload = transaction.model_dump()
     warnings = _review_warnings(transaction, db_path)
@@ -1032,15 +1082,25 @@ def _parse_note(note: str, db_path: str | Path | None = None) -> tuple[dict[str,
 def _transcribe_and_parse_audio(
     audio_path: Any,
     db_path: str | Path | None = None,
+    ai_mode: str = "Cloud AI first",
 ) -> tuple[str, dict[str, Any], dict[str, Any] | None, str, str]:
     """Transcribe recorded audio, parse the transcript, and return UI updates."""
+    force_local = _force_local_mode(ai_mode)
     try:
-        transcription = modal_api.transcribe_audio_result(audio_path, fallback=local_transcribe_audio)
+        transcription = modal_api.transcribe_audio_result(
+            audio_path,
+            fallback=local_transcribe_audio,
+            force_local=force_local,
+        )
     except Exception as exc:
         empty_payload = _empty_transaction_payload()
         return "", empty_payload, None, f"Transcription failed: {exc}", _empty_review_card()
 
-    parse_result = modal_api.parse_transaction_result(transcription.transcript, fallback=local_parse_transaction)
+    parse_result = modal_api.parse_transaction_result(
+        transcription.transcript,
+        fallback=local_parse_transaction,
+        force_local=force_local,
+    )
     transaction = parse_result.transaction
     payload = transaction.model_dump()
     warnings = _review_warnings(transaction, db_path)
@@ -1273,7 +1333,7 @@ def _save_field_notes(who: str, tried: str, changed: str, db_path: str | Path | 
 
 def _get_dashboard_data(
     db_path: str | Path | None,
-) -> tuple[str, str, str, str, str, pd.DataFrame, pd.DataFrame, pd.DataFrame, str]:
+) -> tuple[str, str, str, str, str, pd.DataFrame, pd.DataFrame, pd.DataFrame, str, str]:
     """Return business insight values for the Dashboard section."""
     settings = get_business_settings(db_path)
     currency_symbol = settings["currency_symbol"]
@@ -1300,8 +1360,67 @@ def _get_dashboard_data(
         timeline,
         top_items,
         low_stock,
+        _insight_coach(db_path),
         seller_day,
     )
+
+
+def _insight_coach(db_path: str | Path | None) -> str:
+    """Return practical next-step coaching from today's ledger state."""
+    settings = get_business_settings(db_path)
+    currency = settings["currency_symbol"]
+    threshold = get_low_stock_threshold(db_path)
+    ledger = get_transactions(db_path)
+    sales = calculate_daily_sales(db_path)
+    expenses = calculate_daily_expenses(db_path)
+    profit = calculate_net_profit(db_path)
+    credit = outstanding_credit(db_path)
+    top_items = top_selling_items(db_path)
+    low_stock = low_stock_items(db_path, threshold=threshold)
+    customer_balances = get_customer_balances(db_path)
+
+    insights: list[tuple[str, str, str]] = []
+    if ledger.empty:
+        insights.append(("Start", "Record first transaction", "Use voice or text to add a sale, expense, credit, payment, or stock purchase."))
+    if sales == 0:
+        insights.append(("Sales", "No sales yet today", "Try “Sold 12 mangoes, 20 each” or seed demo data to inspect the full workflow."))
+    if expenses > sales and expenses > 0:
+        insights.append(("Profit", "Expenses are above sales", f"Profit is {_format_money(profit, currency)} today. Review costs before daily closeout."))
+    if credit > 0 and not customer_balances.empty:
+        balances = customer_balances.copy()
+        balances["outstanding_balance"] = pd.to_numeric(balances["outstanding_balance"], errors="coerce").fillna(0)
+        balances = balances.sort_values("outstanding_balance", ascending=False)
+        customer = str(balances.iloc[0]["customer"])
+        balance = float(balances.iloc[0]["outstanding_balance"])
+        insights.append(("Credit", f"Follow up with {customer}", f"{customer} has {_format_money(balance, currency)} outstanding. Use Customer Follow-up to generate a message."))
+    if not low_stock.empty:
+        item = str(low_stock.iloc[0]["item"])
+        stock = float(low_stock.iloc[0]["current_stock"])
+        insights.append(("Stock", f"Restock {item}", f"Current stock is {_format_quantity(stock)}, below the threshold of {_format_quantity(threshold)}."))
+    if not top_items.empty:
+        item = str(top_items.iloc[0]["item"])
+        quantity = top_items.iloc[0]["quantity_sold"]
+        insights.append(("Demand", f"Top product: {item}", f"{_format_quantity(quantity)} sold today. Keep this item visible and stocked."))
+    if ledger.shape[0] > 0 and not any(label == "Closeout" for label, _, _ in insights):
+        insights.append(("Closeout", "Exports are ready", "Run Daily Closeout to prepare PDF, CSV, and WhatsApp summary for today."))
+
+    rows = "".join(
+        f"""
+        <li>
+          <span>{escape(label)}</span>
+          <strong>{escape(title)}</strong>
+          <p>{escape(body)}</p>
+        </li>
+        """
+        for label, title, body in insights[:5]
+    )
+    return f"""
+    <section class="vl-insight-coach">
+      <h2>Insight Coach</h2>
+      <p>Practical next steps based on today's sales, credit, and stock.</p>
+      <ol>{rows}</ol>
+    </section>
+    """
 
 
 def _command_center(db_path: str | Path | None) -> str:
