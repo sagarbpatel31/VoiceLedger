@@ -32,9 +32,21 @@ SHORTHAND_SALE_PATTERN = re.compile(
     rf"(?P<unit_price>\d+(?:\.\d+)?)\s*$",
     re.IGNORECASE,
 )
+QUANTITY_FIRST_SALE_PATTERN = re.compile(
+    rf"^\s*(?P<quantity>\d+(?:\.\d+)?)\s+"
+    rf"(?P<item>[a-zA-Z][a-zA-Z\s-]*?)\s+"
+    rf"(?P<unit_price>\d+(?:\.\d+)?)\s*(?:each|per\s+\w+)?\s*$",
+    re.IGNORECASE,
+)
 SHORTHAND_EXPENSE_PATTERN = re.compile(
     rf"^\s*(?P<item>[a-zA-Z][a-zA-Z\s-]*?)\s+"
     rf"(?P<amount>\d+(?:\.\d+)?)\s*$",
+    re.IGNORECASE,
+)
+HINGLISH_EXPENSE_PATTERN = re.compile(
+    rf"^\s*(?P<item>[a-zA-Z][a-zA-Z\s-]*?)\s+"
+    rf"(?P<amount>\d+(?:\.\d+)?)\s+"
+    rf"(?:diya|dia|paid|pay|chukaya)\s*$",
     re.IGNORECASE,
 )
 INVENTORY_PURCHASE_PATTERN = re.compile(
@@ -44,16 +56,34 @@ INVENTORY_PURCHASE_PATTERN = re.compile(
     rf"(?:\s+(?:for|at)\s+(?P<amount>\d+(?:\.\d+)?))?\b",
     re.IGNORECASE,
 )
+QUANTITY_FIRST_INVENTORY_PATTERN = re.compile(
+    rf"^\s*(?P<quantity>\d+(?:\.\d+)?)\s+"
+    rf"(?P<item>[a-zA-Z][a-zA-Z\s-]*?)\s+"
+    rf"(?:kharida|kharidi|khareeda|lidha|liya|li|bought|purchased)\s*$",
+    re.IGNORECASE,
+)
 CREDIT_PATTERN = re.compile(
     rf"^\s*(?P<customer>[a-zA-Z][a-zA-Z\s-]*?)\s+"
     rf"(?:owes|owe|will\s+pay|to\s+pay)\s+"
     rf"(?P<amount>\d+(?:\.\d+)?)\b",
     re.IGNORECASE,
 )
+HINGLISH_CREDIT_PATTERN = re.compile(
+    rf"^\s*(?P<customer>[a-zA-Z][a-zA-Z\s-]*?)\s+"
+    rf"(?:ne\s+)?(?P<amount>\d+(?:\.\d+)?)\s+"
+    rf"(?:dene\s+hai|dena\s+hai|aapva\s+che|apvana\s+che|owes)\b",
+    re.IGNORECASE,
+)
 CUSTOMER_PAYMENT_PATTERN = re.compile(
     rf"^\s*(?P<customer>[a-zA-Z][a-zA-Z\s-]*?)\s+"
     rf"(?:paid|pays|settled|repaid)\s+"
     rf"(?P<amount>\d+(?:\.\d+)?)\b",
+    re.IGNORECASE,
+)
+HINGLISH_PAYMENT_PATTERN = re.compile(
+    rf"^\s*(?P<customer>[a-zA-Z][a-zA-Z\s-]*?)\s+"
+    rf"ne\s+(?P<amount>\d+(?:\.\d+)?)\s+"
+    rf"(?:diya|dia|aapya|apya|paid|chukaya)\b",
     re.IGNORECASE,
 )
 
@@ -96,9 +126,17 @@ def parse_transaction(note: str) -> Transaction:
     if shorthand_sale:
         return shorthand_sale
 
+    quantity_first_sale = _parse_quantity_first_sale(cleaned_note)
+    if quantity_first_sale:
+        return quantity_first_sale
+
     expense = _parse_expense(cleaned_note)
     if expense:
         return expense
+
+    hinglish_expense = _parse_hinglish_expense(cleaned_note)
+    if hinglish_expense:
+        return hinglish_expense
 
     shorthand_expense = _parse_shorthand_expense(cleaned_note)
     if shorthand_expense:
@@ -171,6 +209,26 @@ def _parse_shorthand_sale(note: str) -> Transaction | None:
     )
 
 
+def _parse_quantity_first_sale(note: str) -> Transaction | None:
+    """Parse notes like '12 mango 20 each'."""
+    match = QUANTITY_FIRST_SALE_PATTERN.search(note)
+    if not match:
+        return None
+
+    quantity = _to_float(match.group("quantity"))
+    unit_price = _to_float(match.group("unit_price"))
+    return Transaction(
+        transaction_type="sale",
+        item=_clean_item(match.group("item")),
+        quantity=quantity,
+        unit_price=unit_price,
+        amount=round(quantity * unit_price, 2) if quantity is not None and unit_price is not None else None,
+        payment_status="paid",
+        notes=note,
+        confidence=0.8,
+    )
+
+
 def _parse_shorthand_expense(note: str) -> Transaction | None:
     """Parse notes like 'rent 300'."""
     match = SHORTHAND_EXPENSE_PATTERN.search(note)
@@ -187,9 +245,25 @@ def _parse_shorthand_expense(note: str) -> Transaction | None:
     )
 
 
+def _parse_hinglish_expense(note: str) -> Transaction | None:
+    """Parse notes like 'rent 300 diya'."""
+    match = HINGLISH_EXPENSE_PATTERN.search(note)
+    if not match:
+        return None
+
+    return Transaction(
+        transaction_type="expense",
+        item=_clean_item(match.group("item")),
+        amount=_to_float(match.group("amount")),
+        payment_status="paid",
+        notes=note,
+        confidence=0.76,
+    )
+
+
 def _parse_inventory_purchase(note: str) -> Transaction | None:
     """Parse notes like 'Bought 50 mangoes'."""
-    match = INVENTORY_PURCHASE_PATTERN.search(note)
+    match = INVENTORY_PURCHASE_PATTERN.search(note) or QUANTITY_FIRST_INVENTORY_PATTERN.search(note)
     if not match:
         return None
 
@@ -197,7 +271,7 @@ def _parse_inventory_purchase(note: str) -> Transaction | None:
         transaction_type="inventory_purchase",
         item=_clean_item(match.group("item")),
         quantity=_to_float(match.group("quantity")),
-        amount=_to_float(match.group("amount")),
+        amount=_to_float(match.groupdict().get("amount")),
         payment_status="paid",
         notes=note,
         confidence=0.86,
@@ -206,7 +280,7 @@ def _parse_inventory_purchase(note: str) -> Transaction | None:
 
 def _parse_customer_credit(note: str) -> Transaction | None:
     """Parse notes like 'Amit owes 100'."""
-    match = CREDIT_PATTERN.search(note)
+    match = CREDIT_PATTERN.search(note) or HINGLISH_CREDIT_PATTERN.search(note)
     if not match:
         return None
 
@@ -222,7 +296,7 @@ def _parse_customer_credit(note: str) -> Transaction | None:
 
 def _parse_customer_payment(note: str) -> Transaction | None:
     """Parse notes like 'Amit paid 50'."""
-    match = CUSTOMER_PAYMENT_PATTERN.search(note)
+    match = CUSTOMER_PAYMENT_PATTERN.search(note) or HINGLISH_PAYMENT_PATTERN.search(note)
     if not match:
         return None
 

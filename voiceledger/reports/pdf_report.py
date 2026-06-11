@@ -51,6 +51,8 @@ def generate_daily_summary_pdf(
     db_path: str | Path | None = None,
     output_dir: str | Path | None = None,
     report_date: date | None = None,
+    business_name: str = "VoiceLedger",
+    currency_symbol: str = "",
 ) -> Path:
     """Generate a Daily Summary PDF and return its filesystem path."""
     try:
@@ -65,8 +67,8 @@ def generate_daily_summary_pdf(
     pdf.set_auto_page_break(auto=True, margin=15)
     pdf.add_page()
 
-    _add_title(pdf, summary.report_date)
-    _add_totals(pdf, summary)
+    _add_title(pdf, summary.report_date, business_name)
+    _add_totals(pdf, summary, currency_symbol)
     _add_inventory_summary(pdf, summary.inventory)
 
     pdf.output(str(output_path))
@@ -106,31 +108,31 @@ def _build_output_path(output_dir: str | Path | None, report_date: date) -> Path
     return directory / f"voiceledger-daily-summary-{report_date.isoformat()}-{timestamp}.pdf"
 
 
-def _add_title(pdf: object, report_date: date) -> None:
+def _add_title(pdf: object, report_date: date, business_name: str) -> None:
     """Add report title and date."""
     pdf.set_font("Helvetica", "B", 18)
-    pdf.cell(0, 12, "VoiceLedger Daily Summary", new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(0, 12, f"{_pdf_safe_text(business_name)} Daily Summary", new_x="LMARGIN", new_y="NEXT")
     pdf.set_font("Helvetica", "", 11)
     pdf.cell(0, 8, f"Date: {report_date.isoformat()}", new_x="LMARGIN", new_y="NEXT")
     pdf.ln(4)
 
 
-def _add_totals(pdf: object, summary: DailySummary) -> None:
+def _add_totals(pdf: object, summary: DailySummary, currency_symbol: str) -> None:
     """Add the financial summary section."""
     pdf.set_font("Helvetica", "B", 13)
     pdf.cell(0, 9, "Financial Summary", new_x="LMARGIN", new_y="NEXT")
     pdf.set_font("Helvetica", "", 11)
-    _add_metric_row(pdf, "Total Sales", summary.total_sales)
-    _add_metric_row(pdf, "Total Expenses", summary.total_expenses)
-    _add_metric_row(pdf, "Net Profit", summary.net_profit)
-    _add_metric_row(pdf, "Customer Credit Outstanding", summary.customer_credit_outstanding)
+    _add_metric_row(pdf, "Total Sales", summary.total_sales, currency_symbol)
+    _add_metric_row(pdf, "Total Expenses", summary.total_expenses, currency_symbol)
+    _add_metric_row(pdf, "Net Profit", summary.net_profit, currency_symbol)
+    _add_metric_row(pdf, "Customer Credit Outstanding", summary.customer_credit_outstanding, currency_symbol)
     pdf.ln(5)
 
 
-def _add_metric_row(pdf: object, label: str, value: float) -> None:
+def _add_metric_row(pdf: object, label: str, value: float, currency_symbol: str) -> None:
     """Add one label/value row to the PDF."""
     pdf.cell(85, 8, label)
-    pdf.cell(0, 8, _format_money(value), new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(0, 8, _format_money(value, currency_symbol), new_x="LMARGIN", new_y="NEXT")
 
 
 def _add_inventory_summary(pdf: object, inventory: pd.DataFrame) -> None:
@@ -151,9 +153,10 @@ def _add_inventory_summary(pdf: object, inventory: pd.DataFrame) -> None:
         pdf.cell(40, 8, _format_quantity(row["current_stock"]), border=1, new_x="LMARGIN", new_y="NEXT")
 
 
-def _format_money(value: float) -> str:
+def _format_money(value: float, currency_symbol: str) -> str:
     """Format a monetary amount for PDF output."""
-    return f"{value:,.2f}"
+    symbol = _pdf_safe_text(currency_symbol)
+    return f"{symbol}{value:,.2f}" if symbol else f"{value:,.2f}"
 
 
 def _format_quantity(value: object) -> str:
@@ -162,3 +165,8 @@ def _format_quantity(value: object) -> str:
     if quantity.is_integer():
         return str(int(quantity))
     return f"{quantity:,.2f}"
+
+
+def _pdf_safe_text(value: str) -> str:
+    """Return text safe for the default fpdf Helvetica font."""
+    return str(value or "").replace("₹", "Rs").encode("latin-1", "ignore").decode("latin-1")

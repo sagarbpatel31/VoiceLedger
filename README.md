@@ -18,18 +18,21 @@ VoiceLedger is a voice-first bookkeeping app for informal sellers, street vendor
 The submission version is feature-frozen around the complete demo loop:
 
 - Record a transaction with your microphone and transcribe it with faster-whisper.
+- Configure seller context: business name, currency label, low-stock threshold, and language style.
 - Type or paste a transaction note.
 - Bulk import multiple pasted notes for review and editing.
 - Parse it with Modal-hosted NVIDIA Nemotron when configured, with local rules as a deterministic fallback.
+- Parse common English, Hinglish, Hindi-lite, and Gujarati-lite seller phrases with deterministic fallback rules.
 - Review a human-friendly transaction card with warning badges before saving.
 - Save the structured transaction to SQLite.
 - See a “Saved just now” receipt with bookkeeping side effects.
 - View the ledger, customer credit book, and inventory in a Gradio interface.
-- Monitor business insights and a daily sales/expense timeline in a dashboard.
+- Monitor business insights, a Command Center, a seller-day activity timeline, and a daily sales/expense chart.
 - Use a mobile-first, business-style Gradio interface with custom styling.
 - Run a Daily Closeout that prepares PDF, WhatsApp summary, and CSV exports together.
 - Download a Daily Summary PDF report.
 - Generate a WhatsApp-ready daily business summary.
+- Generate customer follow-up reminders and an inventory reorder list.
 - Offload speech transcription and LLM parsing to optional Modal endpoints.
 - Edit or delete saved transactions while keeping customer credit and inventory balances consistent.
 - Export the ledger as CSV for spreadsheet sharing.
@@ -58,6 +61,8 @@ Sold 12 mangoes, 20 each
 Paid 500 for supplies
 Amit owes 100
 Bought 50 mangoes
+Amit ne 100 dene hai
+50 mango kharida
 ```
 
 The same examples are available in `sample_data/demo_transactions.txt`.
@@ -73,24 +78,29 @@ The same examples are available in `sample_data/demo_transactions.txt`.
 | `Bought 50 mangoes` | Inventory purchase, quantity `50`, item `mangoes` |
 | `Amit owes 100` | Customer credit, customer `Amit`, amount `100` |
 | `Amit paid 50` | Customer payment, customer `Amit`, amount `50` |
+| `Amit ne 100 dene hai` | Customer credit, customer `Amit`, amount `100` |
+| `Amit ne 50 diya` | Customer payment, customer `Amit`, amount `50` |
+| `50 mango kharida` | Inventory purchase, quantity `50`, item `mango` |
+| `50 mango lidha` | Inventory purchase, quantity `50`, item `mango` |
 
 ## Demo Script
 
-1. Use the `Hackathon Demo Launchpad` on the first screen to seed demo transactions.
-2. Open `Record Text & Voice`, speak or type `Sold 12 mangoes, 20 each`, parse it, and review the human-readable transaction card.
-3. Show the parse status and warning badges: Modal/NVIDIA Nemotron when available, local fallback when needed.
-4. Save the transaction and show the receipt with stock, customer, or amount side effects.
-5. Open `Dashboard`, `Customer Credit`, and `Inventory` to show timeline charts, customer detail, inventory detail, and automatic bookkeeping updates.
-6. Open `Ledger`, load a transaction by id, update or delete it, then show refreshed balances.
-7. Run Daily Closeout from `Reports & PDF`, then download CSV/PDF and generate the WhatsApp summary.
-8. Click `Check Demo Health` from the launchpad, or open `Demo Health`, to show Modal health, deployed backend version, Nemotron status, database, PDF, and endpoint checks.
+1. Use `Seller Setup` to show business name, currency, low-stock threshold, and language style.
+2. Use the `Hackathon Demo Launchpad` on the first screen to seed demo transactions.
+3. Open `Record Text & Voice`, speak or type `Sold 12 mangoes, 20 each`, parse it, and review the human-readable transaction card.
+4. Show the parse status and warning badges: Modal/NVIDIA Nemotron when available, local fallback when needed.
+5. Save the transaction and show the Command Center plus the receipt with stock, customer, or amount side effects.
+6. Open `Dashboard`, `Customer Credit`, and `Inventory` to show timeline charts, customer detail, follow-up message, inventory detail, reorder list, and automatic bookkeeping updates.
+7. Open `Ledger`, load a transaction by id, update or delete it, then show refreshed balances.
+8. Run Daily Closeout from `Reports & PDF`, then download CSV/PDF and generate the WhatsApp summary.
+9. Click `Check Demo Health` from the launchpad, or open `Demo Health`, to show Modal health, deployed backend version, Nemotron status, database, PDF, and endpoint checks.
 
 ## Screenshot and GIF Moments
 
 Capture these three moments for the Space README, demo video, or social post:
 
 - `Record Text & Voice`: Today’s Work quick actions, review card, warning badges, and save receipt.
-- `Dashboard`: metrics, sales/expense timeline, top-selling item, low-stock table, and outstanding credit.
+- `Dashboard`: Command Center, metrics, seller-day activity timeline, sales/expense timeline, top-selling item, low-stock table, and outstanding credit.
 - `Reports & PDF` plus `Ledger`: Daily Closeout, PDF/WhatsApp export, CSV download, and ledger correction.
 - `Submission Story`: AI pipeline strip and “Why small models fit” card for the Modal/Nemotron story.
 
@@ -163,6 +173,9 @@ curl -X POST https://sagarpat3199--voiceledger-api.modal.run/parse \
 - The dashboard shows daily sales, expenses, profit, outstanding credit, top sellers, and low-stock alerts from saved data.
 - Customer and inventory detail views show transaction history for one customer or item.
 - Smart review warnings flag low confidence, missing fields, duplicate risk, and negative stock before save.
+- Seller setup persists business name, currency label, low-stock threshold, and language style in SQLite.
+- Local fallback rules include common English, Hinglish, Hindi-lite, and Gujarati-lite seller notes.
+- Customer follow-up and inventory reorder helpers generate WhatsApp-ready action messages.
 - WhatsApp summaries provide a short copyable daily recap for sharing.
 - Bulk import splits pasted notes by line, parses each line, supports review edits, and saves all reviewed transactions.
 - Modal integration lives in `backend/`; if endpoint URLs are not configured, local fallback stays active.

@@ -13,6 +13,7 @@ import pandas as pd
 from voiceledger.config import get_database_path
 from voiceledger.ledger.customers import add_credit, initialize_customers_table, record_payment
 from voiceledger.ledger.inventory import add_stock, initialize_inventory_table, remove_stock
+from voiceledger.ledger.settings import initialize_business_settings_table
 from voiceledger.parser.schema import Transaction
 
 
@@ -58,6 +59,7 @@ def initialize_database(db_path: str | Path | None = None) -> Path:
 
     initialize_customers_table(path)
     initialize_inventory_table(path)
+    initialize_business_settings_table(path)
     return path
 
 

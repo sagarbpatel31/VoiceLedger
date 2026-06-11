@@ -21,6 +21,8 @@ def generate_whatsapp_summary(
     db_path: str | Path | None = None,
     report_date: date | None = None,
     low_stock_threshold: float = 5,
+    business_name: str = "VoiceLedger",
+    currency_symbol: str = "₹",
 ) -> str:
     """Generate a concise daily summary suitable for WhatsApp sharing."""
     sales = calculate_daily_sales(db_path=db_path, report_date=report_date)
@@ -32,13 +34,13 @@ def generate_whatsapp_summary(
 
     return "\n".join(
         [
-            "VoiceLedger Daily Summary",
+            f"{business_name} Daily Summary",
             "",
-            f"Sales: {_format_money(sales)}",
-            f"Expenses: {_format_money(expenses)}",
-            f"Profit: {_format_money(profit)}",
+            f"Sales: {_format_money(sales, currency_symbol)}",
+            f"Expenses: {_format_money(expenses, currency_symbol)}",
+            f"Profit: {_format_money(profit, currency_symbol)}",
             "",
-            f"Outstanding Credit: {_format_money(credit)}",
+            f"Outstanding Credit: {_format_money(credit, currency_symbol)}",
             "",
             f"Top Product: {top_product}",
             f"Low Stock: {low_stock}",
@@ -60,9 +62,9 @@ def _low_stock_names(low_stock: pd.DataFrame) -> str:
     return ", ".join(str(item).title() for item in low_stock["item"].head(3))
 
 
-def _format_money(value: float) -> str:
+def _format_money(value: float, currency_symbol: str) -> str:
     """Format an amount using a rupee symbol and no decimals for whole values."""
     amount = float(value)
     if amount.is_integer():
-        return f"₹{int(amount)}"
-    return f"₹{amount:,.2f}"
+        return f"{currency_symbol}{int(amount)}"
+    return f"{currency_symbol}{amount:,.2f}"

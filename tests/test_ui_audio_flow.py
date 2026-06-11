@@ -70,7 +70,7 @@ def test_parse_note_surfaces_modal_source(monkeypatch) -> None:
     assert structured["transaction_type"] == "expense"
     assert state == structured
     assert "NVIDIA Nemotron" in status
-    assert "Ready to save" in review_card
+    assert "Safe to save" in review_card
 
 
 def test_high_contrast_demo_panels_are_rendered() -> None:
@@ -133,6 +133,16 @@ def test_review_warnings_flag_missing_and_low_confidence() -> None:
     assert "Low confidence" in warnings
 
 
+def test_review_card_surfaces_needs_review_for_missing_fields() -> None:
+    transaction = gradio_app.Transaction(transaction_type="customer_credit", confidence=0.8)
+
+    review_card = gradio_app._review_card(transaction, "Parsed locally.", gradio_app._review_warnings(transaction, None))
+
+    assert "Needs review" in review_card
+    assert "Missing amount" in review_card
+    assert "Missing customer" in review_card
+
+
 def test_receipt_card_summarizes_saved_sale(tmp_path) -> None:
     transaction = gradio_app.local_parse_transaction("Sold 12 mangoes, 20 each")
 
@@ -152,5 +162,37 @@ def test_daily_closeout_returns_exports(tmp_path) -> None:
     assert "Daily Closeout Ready" in summary
     assert pdf_path is not None
     assert csv_path is not None
-    assert "VoiceLedger Daily Summary" in whatsapp
+    assert "VoiceLedger Seller Daily Summary" in whatsapp
     assert "Daily closeout complete" in status
+
+
+def test_command_center_and_seller_setup_use_settings(tmp_path) -> None:
+    db_path = tmp_path / "voiceledger.sqlite3"
+    gradio_app.update_business_settings(
+        business_name="Mango Cart",
+        currency_symbol="Rs ",
+        low_stock_threshold=3,
+        language_style="English + Hinglish",
+        db_path=db_path,
+    )
+    gradio_app.add_transaction(gradio_app.local_parse_transaction("Sold 12 mangoes, 20 each"), db_path)
+
+    command_center = gradio_app._command_center(db_path)
+
+    assert "Mango Cart Command Center" in command_center
+    assert "Rs240" in command_center
+
+
+def test_customer_followup_and_reorder_helpers(tmp_path) -> None:
+    db_path = tmp_path / "voiceledger.sqlite3"
+    gradio_app.add_transaction(gradio_app.local_parse_transaction("Amit owes 100"), db_path)
+    gradio_app.add_transaction(gradio_app.local_parse_transaction("Amit paid 40"), db_path)
+    gradio_app.add_transaction(gradio_app.local_parse_transaction("Bought 3 onions"), db_path)
+
+    followup = gradio_app.generate_customer_followup("Amit", db_path)
+    reorder, message = gradio_app.generate_reorder_list(db_path)
+
+    assert "Amit" in followup
+    assert "₹60" in followup
+    assert "onions" in set(reorder["item"])
+    assert "Onions" in message

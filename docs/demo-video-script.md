@@ -16,6 +16,8 @@ On the first screen, show the `Judge Demo Flow` panel:
 
 Click `Seed Demo Transactions`.
 
+Show `Seller Setup` and mention that business name, currency, low-stock threshold, and language style are saved in SQLite.
+
 Open `Submission Story` and show the AI pipeline strip plus the “Why small models fit” card.
 
 Click `Check Demo Health` from the launchpad, or open `Demo Health`, and show:
@@ -45,6 +47,7 @@ Click parse. Show:
 - Human-friendly transaction review card
 - Warning badges for low confidence, missing fields, duplicate risk, or negative stock when present
 - Parse source/status
+- Command Center update
 - “Saved just now” receipt with stock, customer, or amount side effects
 
 ## 0:45-1:05 — Bookkeeping Updates
@@ -52,8 +55,8 @@ Click parse. Show:
 Use the `Sections` navigation to open:
 
 - `Dashboard` to show sales/profit/credit and the sales/expense timeline
-- `Customer Credit` to show dues and a selected customer detail view
-- `Inventory` to show stock and a selected item detail view
+- `Customer Credit` to show dues, a selected customer detail view, and a follow-up message
+- `Inventory` to show stock, a selected item detail view, and the reorder list
 - `Ledger` to show saved transactions
 
 Say: “The model handles messy input, but the app owns the accounting state.”
@@ -69,6 +72,7 @@ Open `Reports & PDF`, run `Daily Closeout`, then generate the PDF, WhatsApp summ
 Suggested screenshot/GIF moments:
 
 - Record flow: Today’s Work actions, review card, parse source, warning badges, save receipt.
+- Seller setup: currency/threshold/language style and Command Center.
 - Submission Story: AI pipeline and small-model fit card.
 - Dashboard: sales, expenses, profit, credit, timeline, top item, low-stock inventory.
 - Reports/Ledger: Daily Closeout, PDF download, WhatsApp summary, CSV export.

@@ -38,9 +38,11 @@ from voiceledger.ledger.database import (
     update_transaction,
 )
 from voiceledger.ledger.inventory import get_inventory
+from voiceledger.ledger.settings import get_business_settings, get_low_stock_threshold, update_business_settings
 from voiceledger.parser.bulk import REVIEW_COLUMNS, parse_bulk_notes, review_table_to_transactions
 from voiceledger.parser.rules import parse_transaction as local_parse_transaction
 from voiceledger.parser.schema import Transaction
+from voiceledger.reports.actions import generate_customer_followup, generate_reorder_list
 from voiceledger.reports.pdf_report import generate_daily_summary_pdf
 from voiceledger.reports.whatsapp_summary import generate_whatsapp_summary
 from voiceledger.speech.transcribe import TranscriptionError, transcribe_audio as local_transcribe_audio
@@ -83,6 +85,7 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
         )
 
         parsed_state = gr.State(value=None)
+        initial_settings = get_business_settings(db_path)
 
         with gr.Group(elem_classes="vl-app-nav"):
             gr.HTML("<strong>Sections</strong>")
@@ -104,6 +107,35 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                         "Hackathon Demo Launchpad",
                         "Use the Sections buttons above to open each workflow page. VoiceLedger is locked for the hackathon demo: core bookkeeping is frozen, with Modal/Nemotron active and local fallback ready.",
                     )
+                )
+                command_center_output = gr.HTML(_command_center(db_path))
+                gr.HTML(_section_heading("Seller Setup"))
+                with gr.Row():
+                    business_name_input = gr.Textbox(
+                        label="Business name",
+                        value=initial_settings["business_name"],
+                        elem_classes="vl-panel",
+                    )
+                    currency_symbol_input = gr.Textbox(
+                        label="Currency label",
+                        value=initial_settings["currency_symbol"],
+                        elem_classes="vl-panel",
+                    )
+                with gr.Row():
+                    low_stock_threshold_input = gr.Number(
+                        label="Low-stock threshold",
+                        value=float(initial_settings["low_stock_threshold"]),
+                        elem_classes="vl-panel",
+                    )
+                    language_style_input = gr.Dropdown(
+                        choices=["English", "English + Hinglish", "English + Gujarati-lite"],
+                        label="Primary language style",
+                        value=initial_settings["language_style"],
+                    )
+                save_settings_button = gr.Button("Save Seller Setup")
+                settings_status_output = gr.Markdown(
+                    value=_seller_setup_status(initial_settings),
+                    elem_classes="vl-status",
                 )
                 gr.HTML(_judge_demo_panel())
                 gr.HTML(_today_work_panel())
@@ -234,6 +266,7 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                         wrap=True,
                         elem_classes="vl-panel",
                     )
+                seller_day_output = gr.HTML(_seller_day_timeline(db_path))
                 refresh_dashboard_button.click(
                     fn=lambda: _get_dashboard_data(db_path),
                     inputs=None,
@@ -246,6 +279,7 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                         timeline_output,
                         top_items_output,
                         low_stock_output,
+                        seller_day_output,
                     ],
                 )
                 demo.load(
@@ -260,6 +294,7 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                         timeline_output,
                         top_items_output,
                         low_stock_output,
+                        seller_day_output,
                     ],
                 )
 
@@ -300,6 +335,28 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                 gr.HTML(_submission_story_panel())
                 gr.HTML(_ai_pipeline_strip())
                 gr.HTML(_small_model_fit_card())
+                gr.HTML(_section_heading("Field Test Notes"))
+                with gr.Row():
+                    field_who_input = gr.Textbox(
+                        label="Who this is for",
+                        value=initial_settings["field_test_who"],
+                        lines=3,
+                        elem_classes="vl-panel",
+                    )
+                    field_tried_input = gr.Textbox(
+                        label="What they tried",
+                        value=initial_settings["field_test_tried"],
+                        lines=3,
+                        elem_classes="vl-panel",
+                    )
+                    field_changed_input = gr.Textbox(
+                        label="What changed after feedback",
+                        value=initial_settings["field_test_changed"],
+                        lines=3,
+                        elem_classes="vl-panel",
+                    )
+                save_field_notes_button = gr.Button("Save Field Test Notes")
+                field_notes_status_output = gr.Markdown(elem_classes="vl-status")
                 seed_demo_button = gr.Button("Seed Demo Transactions", variant="primary")
                 seed_demo_status = gr.Markdown(elem_classes="vl-status")
 
@@ -382,6 +439,20 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                     inputs=customer_detail_name,
                     outputs=[customer_detail_summary, customer_detail_output],
                 )
+                gr.HTML(_section_heading("Customer Follow-up"))
+                followup_customer_name = gr.Textbox(label="Customer for WhatsApp reminder", placeholder="Amit")
+                followup_button = gr.Button("Generate Follow-up Message")
+                followup_output = gr.Textbox(
+                    label="WhatsApp follow-up",
+                    lines=4,
+                    interactive=False,
+                    elem_classes="vl-panel",
+                )
+                followup_button.click(
+                    fn=lambda customer_name: generate_customer_followup(customer_name, db_path),
+                    inputs=followup_customer_name,
+                    outputs=followup_output,
+                )
 
         with gr.Column(visible=False, elem_classes="vl-page-section") as inventory_page:
                 gr.HTML('<div id="vl-page-inventory" class="vl-page-anchor"></div>')
@@ -425,6 +496,26 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                     fn=lambda item: _get_inventory_detail(item, db_path),
                     inputs=inventory_detail_item,
                     outputs=[inventory_detail_summary, inventory_detail_output],
+                )
+                gr.HTML(_section_heading("Inventory Reorder List"))
+                reorder_button = gr.Button("Generate Reorder List")
+                reorder_output = gr.Dataframe(
+                    headers=["item", "current_stock", "suggested_action"],
+                    label="Low-stock reorder list",
+                    interactive=False,
+                    wrap=True,
+                    elem_classes="vl-panel",
+                )
+                reorder_message_output = gr.Textbox(
+                    label="WhatsApp restock message",
+                    lines=8,
+                    interactive=False,
+                    elem_classes="vl-panel",
+                )
+                reorder_button.click(
+                    fn=lambda: generate_reorder_list(db_path),
+                    inputs=None,
+                    outputs=[reorder_output, reorder_message_output],
                 )
 
         with gr.Column(visible=False, elem_classes="vl-page-section") as reports_page:
@@ -480,10 +571,7 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                     """
                 )
                 generate_whatsapp_button.click(
-                    fn=lambda: generate_whatsapp_summary(
-                        db_path=db_path,
-                        low_stock_threshold=LOW_STOCK_THRESHOLD,
-                    ),
+                    fn=lambda: _generate_whatsapp_summary(db_path),
                     inputs=None,
                     outputs=whatsapp_summary_output,
                 )
@@ -586,6 +674,7 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
             outputs=[
                 status_output,
                 receipt_output,
+                command_center_output,
                 total_sales_output,
                 total_expenses_output,
                 net_profit_output,
@@ -594,6 +683,7 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                 timeline_output,
                 top_items_output,
                 low_stock_output,
+                seller_day_output,
                 ledger_output,
                 customer_balances_output,
                 inventory_output,
@@ -627,6 +717,7 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
             ],
             outputs=[
                 edit_status_output,
+                command_center_output,
                 total_sales_output,
                 total_expenses_output,
                 net_profit_output,
@@ -635,6 +726,7 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                 timeline_output,
                 top_items_output,
                 low_stock_output,
+                seller_day_output,
                 ledger_output,
                 customer_balances_output,
                 inventory_output,
@@ -645,6 +737,7 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
             inputs=edit_transaction_id,
             outputs=[
                 edit_status_output,
+                command_center_output,
                 total_sales_output,
                 total_expenses_output,
                 net_profit_output,
@@ -653,6 +746,7 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                 timeline_output,
                 top_items_output,
                 low_stock_output,
+                seller_day_output,
                 ledger_output,
                 customer_balances_output,
                 inventory_output,
@@ -663,6 +757,7 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
             inputs=None,
             outputs=[
                 seed_demo_status,
+                command_center_output,
                 total_sales_output,
                 total_expenses_output,
                 net_profit_output,
@@ -671,6 +766,7 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                 timeline_output,
                 top_items_output,
                 low_stock_output,
+                seller_day_output,
                 ledger_output,
                 customer_balances_output,
                 inventory_output,
@@ -681,6 +777,7 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
             inputs=None,
             outputs=[
                 record_demo_status,
+                command_center_output,
                 total_sales_output,
                 total_expenses_output,
                 net_profit_output,
@@ -689,10 +786,40 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                 timeline_output,
                 top_items_output,
                 low_stock_output,
+                seller_day_output,
                 ledger_output,
                 customer_balances_output,
                 inventory_output,
             ],
+        )
+        save_settings_button.click(
+            fn=lambda business_name, currency_symbol, low_stock_threshold, language_style: _save_seller_setup_and_refresh(
+                business_name,
+                currency_symbol,
+                low_stock_threshold,
+                language_style,
+                db_path,
+            ),
+            inputs=[business_name_input, currency_symbol_input, low_stock_threshold_input, language_style_input],
+            outputs=[
+                settings_status_output,
+                command_center_output,
+                total_sales_output,
+                total_expenses_output,
+                net_profit_output,
+                outstanding_credit_output,
+                top_selling_item_output,
+                timeline_output,
+                top_items_output,
+                low_stock_output,
+                seller_day_output,
+                inventory_output,
+            ],
+        )
+        save_field_notes_button.click(
+            fn=lambda who, tried, changed: _save_field_notes(who, tried, changed, db_path),
+            inputs=[field_who_input, field_tried_input, field_changed_input],
+            outputs=field_notes_status_output,
         )
         record_health_button.click(
             fn=lambda: _get_system_check(db_path),
@@ -940,16 +1067,16 @@ def _save_transaction(transaction_payload: dict[str, Any] | None, db_path: str |
 def _save_transaction_and_refresh(
     transaction_payload: dict[str, Any] | None,
     db_path: str | Path | None,
-) -> tuple[str, str, str, str, str, str, str, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.io.formats.style.Styler]:
+) -> tuple[str, str, str, str, str, str, str, str, pd.DataFrame, pd.DataFrame, pd.DataFrame, str, pd.DataFrame, pd.DataFrame, pd.io.formats.style.Styler]:
     """Save a transaction and refresh the demo-critical data views."""
     if not transaction_payload:
-        return ("Parse a transaction before saving.", _empty_receipt_card(), *_refresh_core_views(db_path))
+        return ("Parse a transaction before saving.", _empty_receipt_card(), _command_center(db_path), *_refresh_core_views(db_path))
 
     transaction = Transaction(**transaction_payload)
     transaction_id = add_transaction(transaction, db_path)
     status = f"Saved transaction #{transaction_id}: {_transaction_summary(transaction)}."
     receipt = _receipt_card(transaction, transaction_id, db_path)
-    return (status, receipt, *_refresh_core_views(db_path))
+    return (status, receipt, _command_center(db_path), *_refresh_core_views(db_path))
 
 
 def _load_transaction_for_edit(
@@ -1013,11 +1140,11 @@ def _update_transaction_and_refresh(
     notes: str | None,
     confidence: float | None,
     db_path: str | Path | None,
-) -> tuple[str, str, str, str, str, str, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.io.formats.style.Styler]:
+) -> tuple[str, str, str, str, str, str, str, pd.DataFrame, pd.DataFrame, pd.DataFrame, str, pd.DataFrame, pd.DataFrame, pd.io.formats.style.Styler]:
     """Update a transaction and refresh all dependent views."""
     parsed_id = _coerce_transaction_id(transaction_id)
     if parsed_id is None:
-        return ("Enter a transaction id before updating.", *_refresh_core_views(db_path))
+        return ("Enter a transaction id before updating.", _command_center(db_path), *_refresh_core_views(db_path))
 
     try:
         transaction = _transaction_from_edit_fields(
@@ -1032,27 +1159,27 @@ def _update_transaction_and_refresh(
             confidence=confidence,
         )
     except Exception as exc:
-        return (f"Could not update transaction: {exc}", *_refresh_core_views(db_path))
+        return (f"Could not update transaction: {exc}", _command_center(db_path), *_refresh_core_views(db_path))
 
     updated = update_transaction(parsed_id, transaction, db_path)
     if not updated:
-        return (f"Transaction #{parsed_id} was not found.", *_refresh_core_views(db_path))
-    return (f"Updated transaction #{parsed_id}: {_transaction_summary(transaction)}.", *_refresh_core_views(db_path))
+        return (f"Transaction #{parsed_id} was not found.", _command_center(db_path), *_refresh_core_views(db_path))
+    return (f"Updated transaction #{parsed_id}: {_transaction_summary(transaction)}.", _command_center(db_path), *_refresh_core_views(db_path))
 
 
 def _delete_transaction_and_refresh(
     transaction_id: float | int | None,
     db_path: str | Path | None,
-) -> tuple[str, str, str, str, str, str, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.io.formats.style.Styler]:
+) -> tuple[str, str, str, str, str, str, str, pd.DataFrame, pd.DataFrame, pd.DataFrame, str, pd.DataFrame, pd.DataFrame, pd.io.formats.style.Styler]:
     """Delete a transaction and refresh all dependent views."""
     parsed_id = _coerce_transaction_id(transaction_id)
     if parsed_id is None:
-        return ("Enter a transaction id before deleting.", *_refresh_core_views(db_path))
+        return ("Enter a transaction id before deleting.", _command_center(db_path), *_refresh_core_views(db_path))
 
     deleted = delete_transaction(parsed_id, db_path)
     if not deleted:
-        return (f"Transaction #{parsed_id} was not found.", *_refresh_core_views(db_path))
-    return (f"Deleted transaction #{parsed_id} and refreshed balances.", *_refresh_core_views(db_path))
+        return (f"Transaction #{parsed_id} was not found.", _command_center(db_path), *_refresh_core_views(db_path))
+    return (f"Deleted transaction #{parsed_id} and refreshed balances.", _command_center(db_path), *_refresh_core_views(db_path))
 
 
 def _export_ledger_csv(db_path: str | Path | None) -> tuple[str, str]:
@@ -1063,18 +1190,19 @@ def _export_ledger_csv(db_path: str | Path | None) -> tuple[str, str]:
 
 def _seed_demo_transactions_and_refresh(
     db_path: str | Path | None,
-) -> tuple[str, str, str, str, str, str, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.io.formats.style.Styler]:
+) -> tuple[str, str, str, str, str, str, str, pd.DataFrame, pd.DataFrame, pd.DataFrame, str, pd.DataFrame, pd.DataFrame, pd.io.formats.style.Styler]:
     """Seed realistic demo transactions and refresh all dependent views."""
     saved_ids = [add_transaction(local_parse_transaction(note), db_path) for note in DEMO_NOTES]
     return (
         f"Seeded {len(saved_ids)} demo transactions. Last transaction id: #{saved_ids[-1]}.",
+        _command_center(db_path),
         *_refresh_core_views(db_path),
     )
 
 
 def _refresh_core_views(
     db_path: str | Path | None,
-) -> tuple[str, str, str, str, str, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.io.formats.style.Styler]:
+) -> tuple[str, str, str, str, str, pd.DataFrame, pd.DataFrame, pd.DataFrame, str, pd.DataFrame, pd.DataFrame, pd.io.formats.style.Styler]:
     """Return dashboard, ledger, customer, and inventory refresh values."""
     return (
         *_get_dashboard_data(db_path),
@@ -1109,32 +1237,156 @@ def _save_bulk_transactions(review_table: Any, db_path: str | Path | None) -> st
     return f"Saved {len(saved_ids)} transactions. Last transaction id: #{saved_ids[-1]}."
 
 
+def _save_seller_setup_and_refresh(
+    business_name: str,
+    currency_symbol: str,
+    low_stock_threshold: float | None,
+    language_style: str,
+    db_path: str | Path | None,
+) -> tuple[str, str, str, str, str, str, str, pd.DataFrame, pd.DataFrame, pd.DataFrame, str, pd.io.formats.style.Styler]:
+    """Save seller setup and refresh context-sensitive dashboard views."""
+    settings = update_business_settings(
+        business_name=business_name,
+        currency_symbol=currency_symbol,
+        low_stock_threshold=low_stock_threshold,
+        language_style=language_style,
+        db_path=db_path,
+    )
+    return (
+        _seller_setup_status(settings),
+        _command_center(db_path),
+        *_get_dashboard_data(db_path),
+        _get_inventory_display(db_path),
+    )
+
+
+def _save_field_notes(who: str, tried: str, changed: str, db_path: str | Path | None) -> str:
+    """Persist anonymized field-test notes."""
+    update_business_settings(
+        db_path=db_path,
+        field_test_who=who,
+        field_test_tried=tried,
+        field_test_changed=changed,
+    )
+    return "Saved anonymized field-test notes."
+
+
 def _get_dashboard_data(
     db_path: str | Path | None,
-) -> tuple[str, str, str, str, str, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+) -> tuple[str, str, str, str, str, pd.DataFrame, pd.DataFrame, pd.DataFrame, str]:
     """Return business insight values for the Dashboard section."""
+    settings = get_business_settings(db_path)
+    currency_symbol = settings["currency_symbol"]
+    threshold = get_low_stock_threshold(db_path)
     sales = calculate_daily_sales(db_path)
     expenses = calculate_daily_expenses(db_path)
     profit = calculate_net_profit(db_path)
     credit = outstanding_credit(db_path)
     top_items = top_selling_items(db_path)
-    low_stock = low_stock_items(db_path, threshold=LOW_STOCK_THRESHOLD)
+    low_stock = low_stock_items(db_path, threshold=threshold)
     timeline = _daily_timeline(db_path)
+    seller_day = _seller_day_timeline(db_path)
     top_item = "No sales recorded today"
     if not top_items.empty:
         first_item = top_items.iloc[0]
         top_item = f"{first_item['item']} ({_format_quantity(first_item['quantity_sold'])} sold)"
 
     return (
-        _metric_card("Total Sales Today", _format_money(sales), "Recorded sales"),
-        _metric_card("Total Expenses Today", _format_money(expenses), "Purchases and costs"),
-        _metric_card("Net Profit", _format_money(profit), "Sales minus expenses", profit=profit),
-        _metric_card("Outstanding Credit", _format_money(credit), "Customer dues"),
+        _metric_card("Total Sales Today", _format_money(sales, currency_symbol), "Recorded sales"),
+        _metric_card("Total Expenses Today", _format_money(expenses, currency_symbol), "Purchases and costs"),
+        _metric_card("Net Profit", _format_money(profit, currency_symbol), "Sales minus expenses", profit=profit),
+        _metric_card("Outstanding Credit", _format_money(credit, currency_symbol), "Customer dues"),
         top_item,
         timeline,
         top_items,
         low_stock,
+        seller_day,
     )
+
+
+def _command_center(db_path: str | Path | None) -> str:
+    """Return the top-of-record-page seller command center."""
+    settings = get_business_settings(db_path)
+    currency = settings["currency_symbol"]
+    threshold = get_low_stock_threshold(db_path)
+    sales = calculate_daily_sales(db_path)
+    credit = outstanding_credit(db_path)
+    low_stock_count = len(low_stock_items(db_path, threshold=threshold))
+    last_transaction = _last_transaction_label(db_path)
+    return f"""
+    <section class="vl-command-center">
+      <h2>{escape(settings['business_name'])} Command Center</h2>
+      <div>
+        <span><strong>Sales today</strong>{escape(_format_money(sales, currency))}</span>
+        <span><strong>Outstanding credit</strong>{escape(_format_money(credit, currency))}</span>
+        <span><strong>Low-stock items</strong>{low_stock_count}</span>
+        <span><strong>Last saved</strong>{escape(last_transaction)}</span>
+      </div>
+    </section>
+    """
+
+
+def _seller_setup_status(settings: dict[str, str]) -> str:
+    """Return a concise seller setup status line."""
+    return (
+        f"Seller setup: {settings['business_name']} · currency {settings['currency_symbol']} · "
+        f"low stock below {settings['low_stock_threshold']} · {settings['language_style']}."
+    )
+
+
+def _last_transaction_label(db_path: str | Path | None) -> str:
+    """Return a concise label for the newest transaction."""
+    ledger = get_transactions(db_path)
+    if ledger.empty:
+        return "None yet"
+    row = ledger.iloc[0]
+    amount = row.get("amount")
+    item_or_customer = row.get("item") or row.get("customer") or "transaction"
+    if pd.notna(amount):
+        return f"{row['transaction_type']} · {item_or_customer} · {_format_money(float(amount), get_business_settings(db_path)['currency_symbol'])}"
+    return f"{row['transaction_type']} · {item_or_customer}"
+
+
+def _seller_day_timeline(db_path: str | Path | None) -> str:
+    """Return a visual timeline of recent seller activity."""
+    ledger = get_transactions(db_path)
+    if ledger.empty:
+        return _empty_detail_card("Seller day timeline", "No saved transactions yet.")
+
+    rows = []
+    currency = get_business_settings(db_path)["currency_symbol"]
+    for _, row in ledger.head(8).iterrows():
+        label = _transaction_type_label(str(row["transaction_type"]))
+        subject = row.get("item") or row.get("customer") or "ledger entry"
+        amount = row.get("amount")
+        amount_text = ""
+        if pd.notna(amount):
+            amount_text = f" · {_format_money(float(amount), currency)}"
+        rows.append(
+            f"""
+            <li>
+              <strong>{escape(label)}</strong>
+              <span>{escape(str(subject))}{escape(amount_text)}</span>
+            </li>
+            """
+        )
+    return f"""
+    <section class="vl-seller-timeline">
+      <h2>Seller day timeline</h2>
+      <ol>{''.join(rows)}</ol>
+    </section>
+    """
+
+
+def _transaction_type_label(transaction_type: str) -> str:
+    """Return a compact human label for a transaction type."""
+    return {
+        "sale": "Sale",
+        "expense": "Expense",
+        "inventory_purchase": "Stock purchase",
+        "customer_credit": "Customer owes",
+        "customer_payment": "Customer paid",
+    }.get(transaction_type, "Needs review")
 
 
 def _daily_timeline(db_path: str | Path | None) -> pd.DataFrame:
@@ -1165,7 +1417,8 @@ def _daily_timeline(db_path: str | Path | None) -> pd.DataFrame:
 def _get_inventory_display(db_path: str | Path | None) -> pd.io.formats.style.Styler:
     """Return inventory with low-stock rows highlighted for Gradio display."""
     inventory = get_inventory(db_path)
-    return inventory.style.apply(_highlight_low_stock, axis=1)
+    threshold = get_low_stock_threshold(db_path)
+    return inventory.style.apply(lambda row: _highlight_low_stock(row, threshold), axis=1)
 
 
 def _get_customer_detail(customer_name: str | None, db_path: str | Path | None) -> tuple[str, pd.DataFrame]:
@@ -1191,10 +1444,11 @@ def _get_customer_detail(customer_name: str | None, db_path: str | Path | None) 
         status = "owes"
     elif balance < 0:
         status = "overpaid"
+    currency = get_business_settings(db_path)["currency_symbol"]
     summary = f"""
     <section class="vl-detail-card">
       <h2>{escape(name)} · {status}</h2>
-      <p>Outstanding balance: <strong>{_format_money(balance)}</strong>. Credit: {_format_money(float(credit))}. Payments: {_format_money(float(paid))}.</p>
+      <p>Outstanding balance: <strong>{_format_money(balance, currency)}</strong>. Credit: {_format_money(float(credit), currency)}. Payments: {_format_money(float(paid), currency)}.</p>
     </section>
     """
     return summary, matches[columns].reset_index(drop=True)
@@ -1218,11 +1472,12 @@ def _get_inventory_detail(item: str | None, db_path: str | Path | None) -> tuple
     bought = pd.to_numeric(matches.loc[matches["transaction_type"] == "inventory_purchase", "quantity"], errors="coerce").fillna(0).sum()
     sold = pd.to_numeric(matches.loc[matches["transaction_type"] == "sale", "quantity"], errors="coerce").fillna(0).sum()
     stock = round(float(bought - sold), 2)
-    status = "low stock" if stock < LOW_STOCK_THRESHOLD else "in stock"
+    threshold = get_low_stock_threshold(db_path)
+    status = "low stock" if stock < threshold else "in stock"
     summary = f"""
     <section class="vl-detail-card">
       <h2>{escape(item_name)} · {status}</h2>
-      <p>Bought: {_format_quantity(bought)}. Sold: {_format_quantity(sold)}. Current stock: <strong>{_format_quantity(stock)}</strong>.</p>
+      <p>Bought: {_format_quantity(bought)}. Sold: {_format_quantity(sold)}. Current stock: <strong>{_format_quantity(stock)}</strong>. Low-stock threshold: {_format_quantity(threshold)}.</p>
     </section>
     """
     return summary, matches[columns].reset_index(drop=True)
@@ -1230,8 +1485,13 @@ def _get_inventory_detail(item: str | None, db_path: str | Path | None) -> tuple
 
 def _generate_daily_summary_report(db_path: str | Path | None) -> tuple[str | None, str]:
     """Generate the Daily Summary PDF for download in Gradio."""
+    settings = get_business_settings(db_path)
     try:
-        report_path = generate_daily_summary_pdf(db_path=db_path)
+        report_path = generate_daily_summary_pdf(
+            db_path=db_path,
+            business_name=settings["business_name"],
+            currency_symbol=settings["currency_symbol"],
+        )
     except Exception as exc:
         return None, f"Could not generate report: {exc}"
     return str(report_path), "Daily Summary PDF is ready."
@@ -1239,16 +1499,25 @@ def _generate_daily_summary_report(db_path: str | Path | None) -> tuple[str | No
 
 def _run_daily_closeout(db_path: str | Path | None) -> tuple[str, str | None, str | None, str, str]:
     """Generate the daily closeout summary and exports."""
+    settings = get_business_settings(db_path)
+    currency = settings["currency_symbol"]
+    threshold = get_low_stock_threshold(db_path)
     sales = calculate_daily_sales(db_path)
     expenses = calculate_daily_expenses(db_path)
     profit = calculate_net_profit(db_path)
     credit = outstanding_credit(db_path)
-    low_stock = low_stock_items(db_path, threshold=LOW_STOCK_THRESHOLD)
+    low_stock = low_stock_items(db_path, threshold=threshold)
 
     pdf_path: str | None
     csv_path: str | None
     try:
-        pdf_path = str(generate_daily_summary_pdf(db_path=db_path))
+        pdf_path = str(
+            generate_daily_summary_pdf(
+                db_path=db_path,
+                business_name=settings["business_name"],
+                currency_symbol=currency,
+            )
+        )
     except Exception:
         pdf_path = None
     try:
@@ -1256,15 +1525,20 @@ def _run_daily_closeout(db_path: str | Path | None) -> tuple[str, str | None, st
     except Exception:
         csv_path = None
 
-    whatsapp = generate_whatsapp_summary(db_path=db_path, low_stock_threshold=LOW_STOCK_THRESHOLD)
+    whatsapp = generate_whatsapp_summary(
+        db_path=db_path,
+        low_stock_threshold=threshold,
+        business_name=settings["business_name"],
+        currency_symbol=currency,
+    )
     summary = f"""
     <section class="vl-closeout-card">
       <h2>Daily Closeout Ready</h2>
       <div class="vl-closeout-grid">
-        <span><strong>Sales</strong>{_format_money(sales)}</span>
-        <span><strong>Expenses</strong>{_format_money(expenses)}</span>
-        <span><strong>Profit</strong>{_format_money(profit)}</span>
-        <span><strong>Credit</strong>{_format_money(credit)}</span>
+        <span><strong>Sales</strong>{_format_money(sales, currency)}</span>
+        <span><strong>Expenses</strong>{_format_money(expenses, currency)}</span>
+        <span><strong>Profit</strong>{_format_money(profit, currency)}</span>
+        <span><strong>Credit</strong>{_format_money(credit, currency)}</span>
       </div>
       <p>{len(low_stock)} low-stock item(s). PDF, WhatsApp summary, and CSV are prepared below.</p>
     </section>
@@ -1356,18 +1630,30 @@ def _metric_card(label: str, value: str, note: str, profit: float | None = None)
     """
 
 
-def _format_money(value: float) -> str:
+def _generate_whatsapp_summary(db_path: str | Path | None) -> str:
+    """Generate a WhatsApp summary using seller settings."""
+    settings = get_business_settings(db_path)
+    return generate_whatsapp_summary(
+        db_path=db_path,
+        low_stock_threshold=get_low_stock_threshold(db_path),
+        business_name=settings["business_name"],
+        currency_symbol=settings["currency_symbol"],
+    )
+
+
+def _format_money(value: float, currency_symbol: str | None = None) -> str:
     """Format money for dashboard cards."""
+    symbol = currency_symbol if currency_symbol is not None else get_business_settings()["currency_symbol"]
     amount = float(value)
     if amount.is_integer():
-        return f"₹{int(amount):,}"
-    return f"₹{amount:,.2f}"
+        return f"{symbol}{int(amount):,}"
+    return f"{symbol}{amount:,.2f}"
 
 
-def _highlight_low_stock(row: pd.Series) -> list[str]:
+def _highlight_low_stock(row: pd.Series, threshold: float = LOW_STOCK_THRESHOLD) -> list[str]:
     """Highlight rows where stock is below the configured threshold."""
     current_stock = row.get("current_stock")
-    if current_stock is not None and float(current_stock) < LOW_STOCK_THRESHOLD:
+    if current_stock is not None and float(current_stock) < threshold:
         return ["background-color: #fff3cd; color: #5f370e"] * len(row)
     return [""] * len(row)
 
@@ -1414,9 +1700,12 @@ def _empty_detail_card(title: str, body: str = "Select an item to see details.")
 
 def _review_card(transaction: Transaction, source_message: str, warnings: list[str]) -> str:
     """Render a human-friendly transaction review card."""
-    warning_markup = "".join(f'<span class="vl-warning-badge">{escape(warning)}</span>' for warning in warnings)
-    if not warning_markup:
-        warning_markup = '<span class="vl-success-badge">Ready to save</span>'
+    readiness = _review_readiness(transaction, warnings)
+    warning_markup = "".join(
+        f'<span class="{_warning_badge_class(warning)}">{escape(warning)}</span>'
+        for warning in warnings
+    )
+    warning_markup = f"{readiness}{warning_markup}"
 
     fields = [
         ("Type", transaction.transaction_type),
@@ -1448,6 +1737,8 @@ def _review_warnings(transaction: Transaction, db_path: str | Path | None) -> li
     warnings: list[str] = []
     if transaction.transaction_type == "unknown":
         warnings.append("Unknown type")
+    if transaction.transaction_type in {"sale", "inventory_purchase"} and not transaction.item:
+        warnings.append("Missing item")
     if transaction.amount is None and transaction.transaction_type in {"sale", "expense", "customer_credit", "customer_payment"}:
         warnings.append("Missing amount")
     if transaction.transaction_type in {"customer_credit", "customer_payment"} and not transaction.customer:
@@ -1459,6 +1750,23 @@ def _review_warnings(transaction: Transaction, db_path: str | Path | None) -> li
     if _is_duplicate_transaction(transaction, db_path):
         warnings.append("Possible duplicate")
     return warnings
+
+
+def _review_readiness(transaction: Transaction, warnings: list[str]) -> str:
+    """Return the primary trust cue for a parsed transaction."""
+    blocking_warnings = {"Unknown type", "Missing item", "Missing amount", "Missing customer", "Inventory would go negative"}
+    if transaction.transaction_type == "inventory_purchase" and transaction.quantity is not None:
+        blocking_warnings.discard("Missing amount")
+    if any(warning in blocking_warnings for warning in warnings):
+        return '<span class="vl-warning-badge vl-warning-strong">Needs review</span>'
+    return '<span class="vl-success-badge">Safe to save</span>'
+
+
+def _warning_badge_class(warning: str) -> str:
+    """Return a severity-aware warning badge class."""
+    if warning in {"Inventory would go negative", "Possible duplicate"}:
+        return "vl-warning-badge vl-warning-strong"
+    return "vl-warning-badge"
 
 
 def _would_make_stock_negative(transaction: Transaction, db_path: str | Path | None) -> bool:
@@ -1532,6 +1840,7 @@ def _status_message(
 ) -> str:
     """Return a human-readable parsing status."""
     parts = []
+    parts.append(_source_chip(source_message, fallback_reason))
     if prefix:
         parts.append(prefix)
     parts.append(source_message)
@@ -1545,6 +1854,15 @@ def _status_message(
     if warnings:
         parts.append("Review warnings: " + ", ".join(warnings) + ".")
     return " ".join(parts)
+
+
+def _source_chip(source_message: str, fallback_reason: str | None = None) -> str:
+    """Return a visual parse-source chip for Markdown/HTML status output."""
+    if fallback_reason or "local" in source_message.lower() or "fallback" in source_message.lower():
+        return '<span class="vl-status-chip vl-status-chip-fallback">Local fallback</span>'
+    if "modal" in source_message.lower() or "nemotron" in source_message.lower():
+        return '<span class="vl-status-chip vl-status-chip-cloud">Cloud AI</span>'
+    return '<span class="vl-status-chip">Parsed</span>'
 
 
 def _transcription_status(result: modal_api.TranscriptionResult) -> str:

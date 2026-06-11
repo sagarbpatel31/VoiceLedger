@@ -47,8 +47,10 @@ The hackathon version is intentionally frozen around the complete bookkeeping lo
 
 - Voice and text capture.
 - Modal/Nemotron parsing with local rule fallback.
+- Seller setup for business name, currency, low-stock threshold, and language style.
+- Hinglish/Hindi-lite/Gujarati-lite fallback examples for common seller notes.
 - Human-friendly review cards, warning badges, receipts, and save feedback.
-- Dashboard timeline, customer detail, inventory detail, ledger correction, Daily Closeout, PDF, CSV, and WhatsApp exports.
+- Command Center, dashboard timeline, seller-day timeline, customer follow-up, inventory reorder list, ledger correction, Daily Closeout, PDF, CSV, and WhatsApp exports.
 - Demo Health for backend observability.
 - Submission Story for the AI pipeline and small-model fit rationale.
 

@@ -315,7 +315,9 @@ body,
 .vl-detail-card,
 .vl-closeout-card,
 .vl-pipeline-strip,
-.vl-small-model-card {
+.vl-small-model-card,
+.vl-command-center,
+.vl-seller-timeline {
   background: #ffffff !important;
   border: 1px solid var(--vl-border) !important;
   border-radius: 14px !important;
@@ -330,7 +332,9 @@ body,
 .vl-detail-card *,
 .vl-closeout-card *,
 .vl-pipeline-strip *,
-.vl-small-model-card * {
+.vl-small-model-card *,
+.vl-command-center *,
+.vl-seller-timeline * {
   color: var(--vl-text) !important;
   opacity: 1 !important;
 }
@@ -341,7 +345,9 @@ body,
 .vl-detail-card h2,
 .vl-closeout-card h2,
 .vl-pipeline-strip h2,
-.vl-small-model-card h2 {
+.vl-small-model-card h2,
+.vl-command-center h2,
+.vl-seller-timeline h2 {
   font-size: 18px !important;
   font-weight: 800 !important;
   margin: 0 0 10px !important;
@@ -350,7 +356,8 @@ body,
 .vl-today-panel div,
 .vl-review-grid,
 .vl-closeout-grid,
-.vl-small-model-card div {
+.vl-small-model-card div,
+.vl-command-center div {
   display: grid !important;
   gap: 10px !important;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)) !important;
@@ -359,7 +366,8 @@ body,
 .vl-today-panel span,
 .vl-review-grid div,
 .vl-closeout-grid span,
-.vl-small-model-card span {
+.vl-small-model-card span,
+.vl-command-center span {
   background: #f6f7f2 !important;
   border: 1px solid var(--vl-border) !important;
   border-radius: 10px !important;
@@ -370,7 +378,8 @@ body,
 .vl-today-panel strong,
 .vl-review-grid span,
 .vl-closeout-grid strong,
-.vl-small-model-card strong {
+.vl-small-model-card strong,
+.vl-command-center strong {
   color: #475247 !important;
   display: block !important;
   font-size: 12px !important;
@@ -416,6 +425,12 @@ body,
   background: #fff3cd !important;
   border: 1px solid #e3bc5b !important;
   color: #5f370e !important;
+}
+
+.vl-warning-strong {
+  background: #f8d7da !important;
+  border-color: #d98b91 !important;
+  color: #651922 !important;
 }
 
 .vl-success-badge {
@@ -470,6 +485,58 @@ body,
   font-size: 13px !important;
   line-height: 1.35 !important;
   margin-top: 4px !important;
+}
+
+.vl-seller-timeline ol {
+  display: grid !important;
+  gap: 8px !important;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)) !important;
+  list-style: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.vl-seller-timeline li {
+  background: #f6f7f2 !important;
+  border: 1px solid var(--vl-border) !important;
+  border-left: 5px solid #4aa357 !important;
+  border-radius: 10px !important;
+  padding: 10px !important;
+}
+
+.vl-seller-timeline li strong,
+.vl-seller-timeline li span {
+  display: block !important;
+}
+
+.vl-seller-timeline li span {
+  color: #475247 !important;
+  font-size: 13px !important;
+  margin-top: 4px !important;
+}
+
+.vl-status-chip {
+  background: #eef6ed !important;
+  border: 1px solid #b9d4b4 !important;
+  border-radius: 999px !important;
+  color: #183525 !important;
+  display: inline-block !important;
+  font-size: 12px !important;
+  font-weight: 900 !important;
+  margin-right: 6px !important;
+  padding: 4px 9px !important;
+}
+
+.vl-status-chip-cloud {
+  background: #e8f0ff !important;
+  border-color: #9eb8eb !important;
+  color: #173c73 !important;
+}
+
+.vl-status-chip-fallback {
+  background: #fff3cd !important;
+  border-color: #e3bc5b !important;
+  color: #5f370e !important;
 }
 
 .vl-chip {

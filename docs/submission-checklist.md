@@ -16,17 +16,23 @@
 - `Submission Story` shows the “Why small models fit” card.
 - `Demo Health` shows Modal reachable and backend version.
 - `Demo Health` shows NVIDIA Nemotron parser status.
+- Seller Setup saves business name, currency label, low-stock threshold, and language style.
 - Text parse works with `Sold 12 mangoes, 20 each`.
+- Local fallback parses `Amit ne 100 dene hai`, `Amit ne 50 diya`, and `50 mango kharida`.
 - Voice parse works and transcript appears.
 - Review card shows type, item, quantity, price, amount, customer, source, and confidence.
 - Smart warnings appear for low confidence, missing fields, duplicate risk, and negative stock.
 - Save shows a receipt with transaction type, amount, and side effects.
+- Command Center updates after save and seed.
 - Save updates Dashboard and Ledger.
 - Dashboard timeline loads from saved transactions.
+- Seller-day timeline shows recent saved transactions.
 - Customer Credit section reflects `Amit owes 100` and `Amit paid 40`.
 - Customer detail lookup shows customer transaction history and status.
+- Customer follow-up generates a WhatsApp reminder.
 - Inventory reflects purchases and sales.
 - Inventory detail lookup shows bought, sold, current stock, and low-stock status.
+- Inventory reorder list uses the configured threshold.
 - Ledger edit/delete works and derived balances rebuild.
 - CSV export downloads from Ledger.
 - Daily Closeout generates PDF, CSV, WhatsApp summary, and a status line.
