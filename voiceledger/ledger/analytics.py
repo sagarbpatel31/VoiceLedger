@@ -10,6 +10,7 @@ import pandas as pd
 from voiceledger.ledger.customers import get_customer_balances
 from voiceledger.ledger.database import get_transactions
 from voiceledger.ledger.inventory import get_inventory
+from voiceledger.ledger.settings import get_business_settings
 
 
 DEFAULT_LOW_STOCK_THRESHOLD = 5
@@ -85,6 +86,38 @@ def low_stock_items(
     stock["current_stock"] = pd.to_numeric(stock["current_stock"], errors="coerce").fillna(0)
     low_stock = stock[stock["current_stock"] < threshold]
     return low_stock.sort_values(["current_stock", "item"], ascending=[True, True]).reset_index(drop=True)
+
+
+def get_business_summary(db_path: str | Path | None = None, report_date: date | None = None) -> str:
+    """Return a text summary of today's business performance for LLM analysis."""
+    settings = get_business_settings(db_path)
+    currency = settings["currency_symbol"]
+    sales = calculate_daily_sales(db_path, report_date)
+    expenses = calculate_daily_expenses(db_path, report_date)
+    profit = calculate_net_profit(db_path, report_date)
+    credit = outstanding_credit(db_path)
+    top_items = top_selling_items(db_path, report_date, limit=3)
+    threshold = float(settings.get("low_stock_threshold", DEFAULT_LOW_STOCK_THRESHOLD))
+    low_stock = low_stock_items(db_path, threshold=threshold)
+
+    summary = [
+        f"Business: {settings['business_name']}",
+        f"Date: {report_date or date.today()}",
+        f"Total Sales: {currency}{sales}",
+        f"Total Expenses: {currency}{expenses}",
+        f"Net Profit: {currency}{profit}",
+        f"Outstanding Customer Credit: {currency}{credit}",
+    ]
+
+    if not top_items.empty:
+        items_str = ", ".join([f"{row['item']} ({row['quantity_sold']} sold)" for _, row in top_items.iterrows()])
+        summary.append(f"Top Selling Items: {items_str}")
+
+    if not low_stock.empty:
+        low_stock_str = ", ".join([f"{row['item']} ({row['current_stock']} left)" for _, row in low_stock.iterrows()])
+        summary.append(f"Low Stock Alerts: {low_stock_str}")
+
+    return "\n".join(summary)
 
 
 def _transactions_for_date(db_path: str | Path | None, report_date: date | None) -> pd.DataFrame:

@@ -734,14 +734,27 @@ body,
   border-radius: 14px;
   box-shadow: var(--vl-shadow) !important;
   color: var(--vl-text) !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 16px !important;
   min-height: 112px;
   opacity: 1 !important;
   padding: 16px;
 }
 
-.vl-metric-card,
-.vl-metric-card * {
-  opacity: 1 !important;
+.vl-metric-icon {
+  font-size: 36px !important;
+  background: #f6f7f2 !important;
+  border-radius: 12px !important;
+  width: 64px !important;
+  height: 64px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.vl-metric-content {
+  flex: 1 !important;
 }
 
 .vl-metric-label {
@@ -755,18 +768,63 @@ body,
 
 .vl-metric-value {
   color: var(--vl-text) !important;
-  font-size: 30px;
+  font-size: 28px;
   font-weight: 800;
   line-height: 1.1;
-  margin-top: 10px;
+  margin-top: 4px;
   opacity: 1 !important;
 }
 
 .vl-metric-note {
   color: #475247 !important;
   font-size: 12px;
-  margin-top: 8px;
+  margin-top: 4px;
   opacity: 1 !important;
+}
+
+.vl-llm-insights {
+  background: #f0eaff !important;
+  border: 1px solid #bda8ef !important;
+  border-radius: 14px !important;
+  margin-top: 14px !important;
+  padding: 14px !important;
+}
+
+.vl-llm-insights h3 {
+  color: #43236d !important;
+  font-size: 16px !important;
+  font-weight: 800 !important;
+  margin: 0 0 8px !important;
+}
+
+.vl-llm-insights ul {
+  margin: 0 !important;
+  padding: 0 0 0 18px !important;
+}
+
+.vl-llm-insights li {
+  color: #43236d !important;
+  font-size: 14px !important;
+  line-height: 1.4 !important;
+  margin-bottom: 4px !important;
+}
+
+.vl-quick-action-row {
+  margin-top: 14px !important;
+  gap: 8px !important;
+}
+
+.vl-qr-panel {
+  background: #f6f7f2 !important;
+  border: 2px dashed var(--vl-border) !important;
+  border-radius: 14px !important;
+  margin-top: 14px !important;
+  padding: 14px !important;
+  text-align: center !important;
+}
+
+.vl-lang-selector {
+  margin-bottom: 14px !important;
 }
 
 .vl-profit-positive .vl-metric-value {

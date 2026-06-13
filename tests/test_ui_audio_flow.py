@@ -142,13 +142,13 @@ def test_submission_story_surfaces_pipeline_and_small_model_fit() -> None:
     small_model = gradio_app._small_model_fit_card()
 
     assert "Built for a real informal seller" in story
-    assert "AI pipeline" in pipeline
-    assert "NVIDIA Nemotron" in pipeline
-    assert "Rule fallback" in pipeline
-    assert "SQLite ledger" in pipeline
-    assert "Why small models fit" in small_model
-    assert "Constrained task" in small_model
-    assert "Deterministic ledger" in small_model
+    assert "Small Model Intelligence" in pipeline
+    assert "Nemotron 4B" in pipeline
+    assert "Fallback" in pipeline
+    assert "Database" in pipeline
+    assert "Why Small Models Win Here" in small_model
+    assert "Speed & Latency" in small_model
+    assert "Localization" in small_model
 
 
 def test_demo_health_placeholder_includes_nemotron_status() -> None:

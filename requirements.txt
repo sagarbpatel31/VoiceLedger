@@ -7,3 +7,6 @@ fpdf2>=2.8.0
 requests>=2.32.0
 transformers>=4.44.0
 torch>=2.2.0
+qrcode>=7.4.2
+pillow>=10.3.0
+python-multipart>=0.0.9

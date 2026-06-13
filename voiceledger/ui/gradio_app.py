@@ -23,10 +23,13 @@ from voiceledger.ledger.analytics import (
     calculate_daily_expenses,
     calculate_daily_sales,
     calculate_net_profit,
+    get_business_summary,
     low_stock_items,
     outstanding_credit,
     top_selling_items,
 )
+from voiceledger.ui.i18n import t
+from backend.modal_api import generate_business_insights
 from voiceledger.ledger.customers import get_customer_balances
 from voiceledger.ledger.corrections import get_correction_log, record_correction
 from voiceledger.ledger.database import (
@@ -97,11 +100,50 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
     initialize_database(db_path)
 
     with gr.Blocks(title="VoiceLedger", elem_id="voiceledger-app") as demo:
-        gr.HTML(
+        ui_language = gr.State(value="English")
+        tts_trigger = gr.Textbox(visible=False, elem_id="vl-tts-trigger")
+        tts_trigger.change(
+            fn=None,
+            js="(text, lang) => { if(text) window.vl_speak(text, lang); return ''; }",
+            inputs=[tts_trigger, ui_language],
+            outputs=tts_trigger
+        )
+        tts_output = gr.HTML(
             """
+            <div id="vl-tts-container" style="display:none;"></div>
+            <script>
+              function speak(text, lang) {
+                if (!window.speechSynthesis) return;
+                const utterance = new SpeechSynthesisUtterance(text);
+                const voiceMap = {
+                  'English': 'en-US',
+                  'Spanish': 'es-ES',
+                  'Hindi': 'hi-IN',
+                  'French': 'fr-FR',
+                  'Portuguese': 'pt-BR'
+                };
+                utterance.lang = voiceMap[lang] || 'en-US';
+                window.speechSynthesis.speak(utterance);
+              }
+              window.vl_speak = speak;
+            </script>
+            """,
+            visible=True
+        )
+        
+        with gr.Row(elem_classes="vl-lang-selector"):
+             lang_dropdown = gr.Dropdown(
+                 choices=["English", "Spanish", "Hindi", "French", "Portuguese"],
+                 value="English",
+                 label="App Language / भाषा",
+                 scale=1
+             )
+
+        hero_output = gr.HTML(
+            f"""
             <section class="vl-hero">
-              <h1>VoiceLedger</h1>
-              <p>Daily sales, credit, stock, and reports in one working screen.</p>
+              <h1>{t("app_title", "English")}</h1>
+              <p>{t("app_subtitle", "English")}</p>
             </section>
             """
         )
@@ -110,30 +152,117 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
         initial_settings = get_business_settings(db_path)
 
         with gr.Group(elem_classes="vl-app-nav"):
-            gr.HTML("<strong>Sections</strong>")
+            nav_sections_label = gr.HTML(f"<strong>{t('nav_sections', 'English')}</strong>")
             with gr.Row():
-                nav_record_button = gr.Button("Record Text & Voice")
-                nav_dashboard_button = gr.Button("Dashboard")
-                nav_health_button = gr.Button("Demo Health")
-                nav_story_button = gr.Button("Submission Story")
-                nav_field_test_button = gr.Button("Field Test")
-                nav_bulk_button = gr.Button("Bulk Import")
-                nav_credit_button = gr.Button("Customer Credit")
-                nav_inventory_button = gr.Button("Inventory")
-                nav_reports_button = gr.Button("Reports & PDF")
-                nav_ledger_button = gr.Button("Ledger")
+                nav_record_button = gr.Button(t("nav_record", "English"))
+                nav_dashboard_button = gr.Button(t("nav_dashboard", "English"))
+                nav_health_button = gr.Button(t("nav_health", "English"))
+                nav_story_button = gr.Button(t("nav_story", "English"))
+                nav_field_test_button = gr.Button(t("nav_field_test", "English"))
+                nav_bulk_button = gr.Button(t("nav_bulk", "English"))
+                nav_credit_button = gr.Button(t("nav_credit", "English"))
+                nav_inventory_button = gr.Button(t("nav_inventory", "English"))
+                nav_reports_button = gr.Button(t("nav_reports", "English"))
+                nav_ledger_button = gr.Button(t("nav_ledger", "English"))
+
+        def _change_language(lang):
+            """Update UI labels and headers when language changes."""
+            return (
+                lang,
+                f"""
+                <section class="vl-hero">
+                  <h1>{t("app_title", lang)}</h1>
+                  <p>{t("app_subtitle", lang)}</p>
+                </section>
+                """,
+                gr.update(value=t("nav_record", lang)),
+                gr.update(value=t("nav_dashboard", lang)),
+                gr.update(value=t("nav_health", lang)),
+                gr.update(value=t("nav_story", lang)),
+                gr.update(value=t("nav_field_test", lang)),
+                gr.update(value=t("nav_bulk", lang)),
+                gr.update(value=t("nav_credit", lang)),
+                gr.update(value=t("nav_inventory", lang)),
+                gr.update(value=t("nav_reports", lang)),
+                gr.update(value=t("nav_ledger", lang)),
+                _info_panel(
+                    t("nav_sections", lang),
+                    t("app_subtitle", lang),
+                    language=lang
+                ),
+                _judge_demo_panel(language=lang),
+                _today_work_panel(language=lang),
+                _multilingual_examples_panel(language=lang),
+                _first_run_onboarding_panel(language=lang),
+                gr.update(label=t("record_note", lang)),
+                gr.update(label=t("record_audio", lang)),
+                gr.update(value=t("parse_text", lang)),
+                gr.update(value=t("transcribe_parse", lang)),
+                gr.update(value=t("save_transaction", lang)),
+                gr.update(label=t("record_image", lang)),
+                gr.update(value=t("scan_receipt", lang)),
+                f"<strong>{t('nav_sections', lang)}</strong>",
+                gr.update(value=t("quick_mango", lang)),
+                gr.update(value=t("quick_onion", lang)),
+                gr.update(value=t("quick_milk", lang)),
+                gr.update(value=t("quick_expense", lang)),
+            )
+
+        lang_dropdown.change(
+            fn=_change_language,
+            inputs=lang_dropdown,
+            outputs=[
+                ui_language,
+                hero_output,
+                nav_record_button,
+                nav_dashboard_button,
+                nav_health_button,
+                nav_story_button,
+                nav_field_test_button,
+                nav_bulk_button,
+                nav_credit_button,
+                nav_inventory_button,
+                nav_reports_button,
+                nav_ledger_button,
+                record_info_panel,
+                judge_panel_output,
+                today_work_output,
+                examples_panel_output,
+                onboarding_panel_output,
+                note_input,
+                audio_input,
+                parse_button,
+                transcribe_button,
+                save_button,
+                image_input,
+                scan_button,
+                nav_sections_label,
+                quick_mango,
+                quick_onion,
+                quick_milk,
+                quick_expense,
+            ]
+        )
 
         with gr.Column(visible=True, elem_classes="vl-page-section") as record_page:
                 gr.HTML('<div id="vl-page-record" class="vl-page-anchor"></div>')
-                gr.HTML(
+                record_info_panel = gr.HTML(
                     _info_panel(
                         "Hackathon Demo Launchpad",
                         "Use the Sections buttons above to open each workflow page. VoiceLedger is locked for the hackathon demo: core bookkeeping is frozen, with Modal/Nemotron active and local fallback ready.",
                     )
                 )
-                gr.HTML(_first_run_onboarding_panel())
+                onboarding_panel_output = gr.HTML(_first_run_onboarding_panel())
                 guided_demo_output = gr.HTML(get_guided_demo_status(db_path))
                 refresh_guided_demo_button = gr.Button("Refresh Guided Judge Mode")
+                
+                gr.HTML(_section_heading("Quick Actions"))
+                with gr.Row(elem_classes="vl-quick-action-row"):
+                    quick_mango = gr.Button(t("quick_mango", "English"))
+                    quick_onion = gr.Button(t("quick_onion", "English"))
+                    quick_milk = gr.Button(t("quick_milk", "English"))
+                    quick_expense = gr.Button(t("quick_expense", "English"))
+
                 command_center_output = gr.HTML(_command_center(db_path))
                 gr.HTML(_section_heading("Seller Setup"))
                 with gr.Row():
@@ -184,8 +313,8 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                     )
                     ai_mode_status_output = gr.HTML(_ai_mode_status("Cloud AI first"))
                 ai_mode_input.change(fn=_ai_mode_status, inputs=ai_mode_input, outputs=ai_mode_status_output)
-                gr.HTML(_judge_demo_panel())
-                gr.HTML(_today_work_panel())
+                judge_panel_output = gr.HTML(_judge_demo_panel())
+                today_work_output = gr.HTML(_today_work_panel())
                 start_today_button = gr.Button("Start Today", variant="primary")
                 with gr.Row():
                     record_seed_demo_button = gr.Button("Seed Demo Transactions", variant="primary")
@@ -213,7 +342,7 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                         "Record or type -> Parse -> Review -> Save",
                     )
                 )
-                gr.HTML(
+                examples_panel_output = gr.HTML(
                     _multilingual_examples_panel()
                 )
                 gr.HTML(_section_heading("Voice Command Shortcuts"))
@@ -254,6 +383,14 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                             interactive=False,
                             elem_classes="vl-panel",
                         )
+                    with gr.Column():
+                        image_input = gr.Image(
+                            label="Upload receipt image",
+                            sources=["upload", "webcam"],
+                            type="filepath",
+                            elem_classes="vl-panel",
+                        )
+                        scan_button = gr.Button("Scan Receipt", variant="primary")
 
                 review_card_output = gr.HTML(_empty_review_card())
                 gr.HTML(_section_heading("Edit Before Save"))
@@ -325,6 +462,25 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                         review_payment_status,
                         review_notes,
                         review_confidence,
+                    ],
+                )
+                scan_button.click(
+                    fn=lambda image_path, ai_mode: _scan_receipt_for_editing(image_path, db_path, ai_mode),
+                    inputs=[image_input, ai_mode_input],
+                    outputs=[
+                        structured_output,
+                        parsed_state,
+                        status_output,
+                        review_card_output,
+                        review_item,
+                        review_quantity,
+                        review_unit_price,
+                        review_amount,
+                        review_customer,
+                        review_transaction_type,
+                        review_payment_status,
+                        review_confidence,
+                        review_notes,
                     ],
                 )
                 example_sale_button.click(fn=lambda: "Sold 12 mangoes, 20 each", inputs=None, outputs=note_input)
@@ -406,11 +562,11 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                         wrap=True,
                         elem_classes="vl-panel",
                     )
-                insight_coach_output = gr.HTML(_insight_coach(db_path))
+                insight_coach_output = gr.HTML(_insight_coach(db_path, language="English"))
                 seller_day_output = gr.HTML(_seller_day_timeline(db_path))
                 refresh_dashboard_button.click(
-                    fn=lambda: _get_dashboard_data(db_path),
-                    inputs=None,
+                    fn=lambda lang: _get_dashboard_data(db_path, language=lang),
+                    inputs=[ui_language],
                     outputs=[
                         total_sales_output,
                         total_expenses_output,
@@ -425,8 +581,8 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                     ],
                 )
                 demo.load(
-                    fn=lambda: _get_dashboard_data(db_path),
-                    inputs=None,
+                    fn=lambda lang: _get_dashboard_data(db_path, language=lang),
+                    inputs=[ui_language],
                     outputs=[
                         total_sales_output,
                         total_expenses_output,
@@ -953,7 +1109,7 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                 )
 
         save_button.click(
-            fn=lambda parsed, transaction_type, item, quantity, unit_price, amount, customer, payment_status, notes, confidence: _save_reviewed_transaction_and_refresh(
+            fn=lambda parsed, transaction_type, item, quantity, unit_price, amount, customer, payment_status, notes, confidence, lang: _save_reviewed_transaction_and_refresh(
                 parsed,
                 transaction_type,
                 item,
@@ -965,6 +1121,7 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                 notes,
                 confidence,
                 db_path,
+                language=lang,
             ),
             inputs=[
                 parsed_state,
@@ -977,6 +1134,7 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                 review_payment_status,
                 review_notes,
                 review_confidence,
+                ui_language,
             ],
             outputs=[
                 status_output,
@@ -995,10 +1153,11 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                 ledger_output,
                 customer_balances_output,
                 inventory_output,
+                tts_trigger,
             ],
         )
         update_transaction_button.click(
-            fn=lambda transaction_id, transaction_type, item, quantity, unit_price, amount, customer, payment_status, notes, confidence: _update_transaction_and_refresh(
+            fn=lambda transaction_id, transaction_type, item, quantity, unit_price, amount, customer, payment_status, notes, confidence, lang: _update_transaction_and_refresh(
                 transaction_id,
                 transaction_type,
                 item,
@@ -1010,6 +1169,7 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                 notes,
                 confidence,
                 db_path,
+                language=lang,
             ),
             inputs=[
                 edit_transaction_id,
@@ -1022,6 +1182,7 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                 edit_payment_status,
                 edit_notes,
                 edit_confidence,
+                ui_language,
             ],
             outputs=[
                 edit_status_output,
@@ -1039,11 +1200,12 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                 ledger_output,
                 customer_balances_output,
                 inventory_output,
+                tts_trigger,
             ],
         )
         delete_transaction_button.click(
-            fn=lambda transaction_id: _delete_transaction_and_refresh(transaction_id, db_path),
-            inputs=edit_transaction_id,
+            fn=lambda transaction_id, lang: _delete_transaction_and_refresh(transaction_id, db_path, language=lang),
+            inputs=[edit_transaction_id, ui_language],
             outputs=[
                 edit_status_output,
                 command_center_output,
@@ -1060,11 +1222,12 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                 ledger_output,
                 customer_balances_output,
                 inventory_output,
+                tts_trigger,
             ],
         )
         seed_demo_button.click(
-            fn=lambda: _seed_demo_transactions_and_refresh(db_path),
-            inputs=None,
+            fn=lambda lang: _seed_demo_transactions_and_refresh(db_path, language=lang),
+            inputs=[ui_language],
             outputs=[
                 seed_demo_status,
                 command_center_output,
@@ -1081,11 +1244,12 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                 ledger_output,
                 customer_balances_output,
                 inventory_output,
+                tts_trigger,
             ],
         )
         record_seed_demo_button.click(
-            fn=lambda: _seed_demo_transactions_and_refresh(db_path),
-            inputs=None,
+            fn=lambda lang: _seed_demo_transactions_and_refresh(db_path, language=lang),
+            inputs=[ui_language],
             outputs=[
                 record_demo_status,
                 command_center_output,
@@ -1102,6 +1266,7 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                 ledger_output,
                 customer_balances_output,
                 inventory_output,
+                tts_trigger,
             ],
         )
         save_settings_button.click(
@@ -1236,70 +1401,151 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
     return demo
 
 
-def _info_panel(title: str, body: str) -> str:
+def _info_panel(title: str, body: str, language: str = "English") -> str:
     """Return a high-contrast information panel."""
+    tech_note = "Receipt scanning uses <strong>Moondream-2 (1.6B VLM)</strong> optimized for structured extraction on small compute."
+    if language == "Spanish":
+        tech_note = "El escaneo de recibos utiliza <strong>Moondream-2 (1.6B VLM)</strong> optimizado para la extracción estructurada."
+    elif language == "Hindi":
+        tech_note = "रसीद स्कैनिंग <strong>Moondream-2 (1.6B VLM)</strong> का उपयोग करती है, जो छोटे कंप्यूट पर संरचित निष्कर्षण के लिए अनुकूलित है।"
+
     return f"""
     <section class="vl-info-panel">
       <h2>{title}</h2>
       <p>{body}</p>
-    </section>
-    """
-
-
-def _judge_demo_panel() -> str:
-    """Return the judge-facing demo flow and backend status line."""
-    return """
-    <section class="vl-judge-panel">
-      <h2>Judge Demo Flow</h2>
-      <ol>
-        <li><strong>1. Seed demo data</strong><span>Load realistic sales, expense, credit, payment, and stock entries.</span></li>
-        <li><strong>2. Record/type</strong><span>Speak or enter a seller note like “Sold 12 mangoes, 20 each”.</span></li>
-        <li><strong>3. Save</strong><span>Review the structured transaction and save it to the ledger.</span></li>
-        <li><strong>4. View dashboard/reports</strong><span>Open Dashboard, Inventory, Credit, Ledger, PDF, WhatsApp, and CSV.</span></li>
-      </ol>
-      <p class="vl-health-line">
-        Demo Health: Modal backend • NVIDIA Nemotron parser • SQLite ledger • PDF export • configured Modal endpoints
-      </p>
-    </section>
-    """
-
-
-def _today_work_panel() -> str:
-    """Return guided daily action suggestions."""
-    return """
-    <section class="vl-today-panel">
-      <h2>Today’s Work</h2>
-      <div>
-        <span><strong>Record Sale</strong>“Sold 12 mangoes, 20 each”</span>
-        <span><strong>Record Expense</strong>“Paid 500 for supplies”</span>
-        <span><strong>Customer Owes</strong>“Amit owes 100”</span>
-        <span><strong>Customer Paid</strong>“Amit paid 50”</span>
-        <span><strong>Bought Stock</strong>“Bought 50 mangoes”</span>
+      <div style="margin-top: 10px; font-size: 0.85em; opacity: 0.8;">
+        <strong>Tech Note:</strong> {tech_note}
       </div>
     </section>
     """
 
 
-def _first_run_onboarding_panel() -> str:
-    """Return a compact first-run guide for sellers."""
-    return """
-    <section class="vl-onboarding-panel">
-      <h2>Start in 60 seconds</h2>
-      <ol>
-        <li><strong>1. Confirm setup</strong><span>Business name, currency, stock threshold, and language style.</span></li>
-        <li><strong>2. Record one note</strong><span>Use voice or text for a sale, expense, customer due, payment, or stock purchase.</span></li>
-        <li><strong>3. Review and fix</strong><span>Edit item, amount, customer, or type before saving.</span></li>
-        <li><strong>4. Close the day</strong><span>Open Dashboard, Field Test, Reports, and Ledger to inspect results.</span></li>
-      </ol>
+def _judge_demo_panel(language: str = "English") -> str:
+    """Return the judge-facing demo flow and backend status line."""
+    title = "Judge Demo Flow"
+    health_line = "Demo Health: Modal backend • NVIDIA Nemotron parser • SQLite ledger • PDF export • configured Modal endpoints"
+    
+    steps = [
+        ("1. Seed demo data", "Load realistic sales, expense, credit, payment, and stock entries."),
+        ("2. Record/type", "Speak or enter a seller note like “Sold 12 mangoes, 20 each”."),
+        ("3. Save", "Review the structured transaction and save it to the ledger."),
+        ("4. View dashboard/reports", "Open Dashboard, Inventory, Credit, Ledger, PDF, WhatsApp, and CSV.")
+    ]
+
+    if language == "Spanish":
+        title = "Flujo de Demo para Jueces"
+        health_line = "Salud de la Demo: Backend Modal • Analizador NVIDIA Nemotron • Libro SQLite • Exportación PDF • Endpoints Modal configurados"
+        steps = [
+            ("1. Cargar datos", "Carga registros realistas de ventas, gastos, crédito, pagos y stock."),
+            ("2. Grabar/escribir", "Habla o escribe una nota como \"Vendí 12 mangos, 20 cada uno\"."),
+            ("3. Guardar", "Revisa la transacción estructurada y guárdala en el libro mayor."),
+            ("4. Ver reportes", "Abre Tablero, Inventario, Crédito, Libro Mayor, PDF, WhatsApp y CSV.")
+        ]
+    elif language == "Hindi":
+        title = "जज डेमो फ्लो"
+        health_line = "डेमो हेल्थ: मॉडल बैकएंड • NVIDIA Nemotron पार्सर • SQLite लेजर • PDF एक्सपोर्ट • कॉन्फ़िगर किए गए मॉडल एंडपॉइंट"
+        steps = [
+            ("1. डेमो डेटा लोड करें", "यथार्थवादी बिक्री, व्यय, क्रेडिट, भुगतान और स्टॉक प्रविष्टियां लोड करें।"),
+            ("2. रिकॉर्ड/टाइप करें", "विक्रेता नोट बोलें या दर्ज करें जैसे \"12 आम बेचे, 20 प्रत्येक\"।"),
+            ("3. सहेजें", "संरचित लेनदेन की समीक्षा करें और इसे लेजर में सहेजें।"),
+            ("4. डैशबोर्ड/रिपोर्ट देखें", "डैशबोर्ड, इन्वेंट्री, क्रेडिट, लेजर, PDF, व्हाट्सएप और CSV खोलें।")
+        ]
+
+    rows = "".join(f"<li><strong>{s[0]}</strong><span>{s[1]}</span></li>" for s in steps)
+    
+    return f"""
+    <section class="vl-judge-panel">
+      <h2>{title}</h2>
+      <ol>{rows}</ol>
+      <p class="vl-health-line">{health_line}</p>
     </section>
     """
 
 
-def _multilingual_examples_panel() -> str:
+def _today_work_panel(language: str = "English") -> str:
+    """Return guided daily action suggestions."""
+    title = t("start_today", language)
+    if language == "English": title = "Today's Work"
+
+    items = [
+        ("Record Sale", "“Sold 12 mangoes, 20 each”"),
+        ("Record Expense", "“Paid 500 for supplies”"),
+        ("Customer Owes", "“Amit owes 100”"),
+        ("Customer Paid", "“Amit paid 50”"),
+        ("Bought Stock", "“Bought 50 mangoes”")
+    ]
+
+    if language == "Spanish":
+        items = [
+            ("Venta", "\"Vendí 12 mangos, 20 cada uno\""),
+            ("Gasto", "\"Pagué 500 por suministros\""),
+            ("Cliente debe", "\"Amit debe 100\""),
+            ("Cliente pagó", "\"Amit pagó 50\""),
+            ("Compra Stock", "\"Compré 50 mangos\"")
+        ]
+    elif language == "Hindi":
+        items = [
+            ("बिक्री", "\"12 आम बेचे, 20 प्रत्येक\""),
+            ("व्यय", "\"आपूर्ति के लिए 500 का भुगतान किया\""),
+            ("ग्राहक बकाया", "\"अमित के 100 बकाया हैं\""),
+            ("ग्राहक भुगतान", "\"अमित ने 50 का भुगतान किया\""),
+            ("स्टॉक खरीदा", "\"50 आम खरीदे\"")
+        ]
+
+    rows = "".join(f"<span><strong>{i[0]}</strong>{i[1]}</span>" for i in items)
+    return f"""
+    <section class="vl-today-panel">
+      <h2>{title}</h2>
+      <div>{rows}</div>
+    </section>
+    """
+
+
+def _first_run_onboarding_panel(language: str = "English") -> str:
+    """Return a compact first-run guide for sellers."""
+    title = "Start in 60 seconds"
+    steps = [
+        ("1. Confirm setup", "Business name, currency, stock threshold, and language style."),
+        ("2. Record one note", "Use voice or text for a sale, expense, customer due, payment, or stock purchase."),
+        ("3. Review and fix", "Edit item, amount, customer, or type before saving."),
+        ("4. Close the day", "Open Dashboard, Field Test, Reports, and Ledger to inspect results.")
+    ]
+
+    if language == "Spanish":
+        title = "Comienza en 60 segundos"
+        steps = [
+            ("1. Confirmar config", "Nombre, moneda, umbral de stock y estilo de idioma."),
+            ("2. Grabar nota", "Voz o texto para venta, gasto, crédito, pago o compra de stock."),
+            ("3. Revisar y fijar", "Edita el artículo, monto, cliente o tipo antes de guardar."),
+            ("4. Cerrar el día", "Abre Tablero, Pruebas, Informes y Libro Mayor para ver resultados.")
+        ]
+    elif language == "Hindi":
+        title = "60 सेकंड में शुरू करें"
+        steps = [
+            ("1. सेटअप पुष्टि करें", "व्यवसाय का नाम, मुद्रा, स्टॉक सीमा और भाषा शैली।"),
+            ("2. एक नोट रिकॉर्ड करें", "बिक्री, व्यय, ग्राहक बकाया, भुगतान या स्टॉक खरीद के लिए आवाज या टेक्स्ट का उपयोग करें।"),
+            ("3. समीक्षा और सुधार", "सहेजने से पहले आइटम, राशि, ग्राहक या प्रकार संपादित करें।"),
+            ("4. दिन समाप्त करें", "परिणामों का निरीक्षण करने के लिए डैशबोर्ड, फील्ड टेस्ट, रिपोर्ट और लेजर खोलें।")
+        ]
+
+    rows = "".join(f"<li><strong>{s[0]}</strong><span>{s[1]}</span></li>" for s in steps)
+    return f"""
+    <section class="vl-onboarding-panel">
+      <h2>{title}</h2>
+      <ol>{rows}</ol>
+    </section>
+    """
+
+
+def _multilingual_examples_panel(language: str = "English") -> str:
     """Return grouped examples across English and local seller shorthand."""
-    return """
+    title = "Example inputs"
+    if language == "Spanish": title = "Ejemplos de entrada"
+    elif language == "Hindi": title = "इनपुट उदाहरण"
+
+    return f"""
     <section class="vl-language-panel">
-      <h2>Example inputs</h2>
+      <h2>{title}</h2>
       <div>
         <span><strong>English</strong><code>Sold 12 mangoes, 20 each</code><code>Paid 500 for supplies</code><code>Amit owes 100</code></span>
         <span><strong>Hinglish</strong><code>Amit ne 100 dene hai</code><code>Amit ne 50 diya</code><code>50 mango kharida</code></span>
@@ -1318,6 +1564,14 @@ def _submission_story_panel() -> str:
     <section class="vl-info-panel">
       <h2>Built for a real informal seller</h2>
       <p>VoiceLedger is built for a local informal seller who tracks sales, customer dues, stock, and daily profit from short voice notes instead of spreadsheets.</p>
+      <p><strong>The "Backyard" Story:</strong> Imagine a market vendor in a busy stall. They don't have time to type. They might have a cheap phone and spotty internet. We use <strong>Small AI</strong> to ensure they can track their business without high costs or complex interfaces.</p>
+      <p><strong>The "Build Small" Advantage:</strong>
+        <ul>
+          <li><strong>Local-First Resilience:</strong> If the "backyard" has no internet, VoiceLedger falls back to a deterministic rule-engine, ensuring the business never stops.</li>
+          <li><strong>Efficiency:</strong> Using 4B LLMs and 1.6B VLMs means faster response times and lower costs ($0.001 per transaction).</li>
+          <li><strong>Empathy:</strong> Voice-first, multilingual, and QR-ready for immediate real-world utility.</li>
+        </ul>
+      </p>
       <p><strong>Demo path:</strong> seed demo data, record or type a transaction, review warnings, save it, then inspect the dashboard, ledger, credit book, inventory, PDF report, WhatsApp summary, and CSV export.</p>
     </section>
     """
@@ -1326,12 +1580,12 @@ def _submission_story_panel() -> str:
 def _ai_pipeline_strip() -> str:
     """Return a compact visual pipeline for the app's AI and ledger flow."""
     stages = (
-        ("Voice/Text", "Seller note"),
-        ("Modal", "Cloud endpoint"),
-        ("NVIDIA Nemotron", "Strict JSON parse"),
-        ("Rule fallback", "Demo reliability"),
-        ("SQLite ledger", "Accounting state"),
-        ("Reports", "PDF, CSV, WhatsApp"),
+        ("Input", "Voice/Text"),
+        ("Endpoint", "Modal Cloud"),
+        ("Nemotron 4B", "NVIDIA Small LLM"),
+        ("Extraction", "Strict JSON"),
+        ("Fallback", "Rule Engine"),
+        ("Database", "SQLite Edge"),
     )
     stage_markup = "".join(
         f"""
@@ -1345,8 +1599,8 @@ def _ai_pipeline_strip() -> str:
     return f"""
     <section class="vl-pipeline-strip">
       <div>
-        <h2>AI pipeline</h2>
-        <p>VoiceLedger calls Modal first for speech and NVIDIA Nemotron parsing, then falls back to deterministic rules before saving to SQLite.</p>
+        <h2>Small Model Intelligence</h2>
+        <p>VoiceLedger leverages <strong>NVIDIA Nemotron-3-Nano-4B</strong> (Small but Mighty) via Modal, optimized for low-latency JSON extraction from messy multilingual notes.</p>
       </div>
       <ol>{stage_markup}</ol>
     </section>
@@ -1357,11 +1611,12 @@ def _small_model_fit_card() -> str:
     """Return the small-model fit explanation for judges."""
     return """
     <section class="vl-small-model-card">
-      <h2>Why small models fit</h2>
+      <h2>Why Small Models Win Here</h2>
       <div>
-        <span><strong>Constrained task</strong>Every note maps into one transaction schema: type, item, quantity, price, amount, customer, notes, and confidence.</span>
-        <span><strong>Deterministic ledger</strong>The model never owns balances. Python and SQLite rebuild customer credit, inventory, reports, and exports.</span>
-        <span><strong>Reliable fallback</strong>If Modal or Nemotron is unavailable, local rules keep the demo and bookkeeping flow working.</span>
+        <span><strong>Speed & Latency</strong>Nemotron-3-Nano-4B returns structured data in &lt;500ms, essential for a busy seller in a "backyard" setting.</span>
+        <span><strong>Constrained Context</strong>Bookkeeping notes are short. A 4B model is the "sweet spot" for high accuracy without the overhead of a 70B model.</span>
+        <span><strong>Localization</strong>Smaller models are surprisingly good at handling Hinglish/multilingual shorthand when prompted with clear schemas.</span>
+        <span><strong>Reliable Fallback</strong>If internet drops, our deterministic rule engine ensures the business never stops running.</span>
       </div>
     </section>
     """
@@ -1491,6 +1746,47 @@ def _parse_note(
         warnings.append(PRICE_MEMORY_BADGE)
     status = _status_message(transaction, result.message, result.fallback_reason, warnings=warnings)
     return payload, payload, status, _review_card(transaction, result.message, warnings)
+
+
+def _scan_receipt_for_editing(
+    image_path: str | Path | None,
+    db_path: str | Path | None,
+    ai_mode: str = "Cloud AI first",
+) -> tuple[dict[str, Any], dict[str, Any], str, str, str | None, float | None, float | None, float | None, str | None, str, str, float, str]:
+    """Scan a receipt and return editable review fields."""
+    if not image_path:
+        return ({}, {}, "Please upload or take a photo of a receipt.", _empty_review_card(), *([None] * 5), "unknown", "unknown", 0.0, "")
+
+    result = modal_api.scan_receipt_result(
+        image_path,
+        fallback=local_parse_transaction,
+        force_local=_force_local_mode(ai_mode),
+    )
+    transaction = result.transaction
+    transaction, price_memory_used = suggest_price_from_history(transaction, db_path)
+    payload = transaction.model_dump()
+    warnings = _review_warnings(transaction, db_path)
+    if price_memory_used:
+        warnings.append(PRICE_MEMORY_BADGE)
+    
+    status = _status_message(transaction, result.message, result.fallback_reason, warnings=warnings)
+    review_card = _review_card(transaction, warnings=warnings)
+    
+    return (
+        payload,
+        payload,
+        status,
+        review_card,
+        transaction.item,
+        transaction.quantity,
+        transaction.unit_price,
+        transaction.amount,
+        transaction.customer,
+        transaction.transaction_type,
+        transaction.payment_status,
+        transaction.confidence,
+        transaction.notes or "",
+    )
 
 
 def _parse_note_for_editing(
@@ -1624,10 +1920,11 @@ def _save_reviewed_transaction_and_refresh(
     notes: str | None,
     confidence: float | None,
     db_path: str | Path | None,
+    language: str = "English",
 ) -> tuple[str, str, str, str, str, str, str, str, pd.DataFrame, pd.DataFrame, pd.DataFrame, str, pd.DataFrame, pd.DataFrame, pd.io.formats.style.Styler]:
     """Save edited review fields and refresh demo-critical data views."""
     if not transaction_payload:
-        return ("Parse a transaction before saving.", _empty_receipt_card(), _command_center(db_path), *_refresh_core_views(db_path))
+        return ("Parse a transaction before saving.", _empty_receipt_card(), _command_center(db_path), *_refresh_core_views(db_path, language=language))
 
     transaction = _transaction_from_edit_fields(
         transaction_type=transaction_type,
@@ -1643,7 +1940,8 @@ def _save_reviewed_transaction_and_refresh(
     transaction_id = add_transaction(transaction, db_path)
     status = f"Saved transaction #{transaction_id}: {_transaction_summary(transaction)}."
     receipt = _receipt_card(transaction, transaction_id, db_path)
-    return (status, receipt, _command_center(db_path), *_refresh_core_views(db_path))
+    tts_msg = t("transaction_saved_tts", language)
+    return (status, receipt, _command_center(db_path), *_refresh_core_views(db_path, language=language), tts_msg)
 
 
 def _load_transaction_for_edit(
@@ -1707,11 +2005,12 @@ def _update_transaction_and_refresh(
     notes: str | None,
     confidence: float | None,
     db_path: str | Path | None,
-) -> tuple[str, str, str, str, str, str, str, pd.DataFrame, pd.DataFrame, pd.DataFrame, str, pd.DataFrame, pd.DataFrame, pd.io.formats.style.Styler]:
+    language: str = "English",
+) -> tuple[str, str, str, str, str, str, str, pd.DataFrame, pd.DataFrame, pd.DataFrame, str, pd.DataFrame, pd.DataFrame, pd.io.formats.style.Styler, str]:
     """Update a transaction and refresh all dependent views."""
     parsed_id = _coerce_transaction_id(transaction_id)
     if parsed_id is None:
-        return ("Enter a transaction id before updating.", _command_center(db_path), *_refresh_core_views(db_path))
+        return ("Enter a transaction id before updating.", _command_center(db_path), *_refresh_core_views(db_path, language=language), "")
 
     try:
         transaction = _transaction_from_edit_fields(
@@ -1726,27 +2025,34 @@ def _update_transaction_and_refresh(
             confidence=confidence,
         )
     except Exception as exc:
-        return (f"Could not update transaction: {exc}", _command_center(db_path), *_refresh_core_views(db_path))
+        return (f"Could not update transaction: {exc}", _command_center(db_path), *_refresh_core_views(db_path, language=language), "")
 
     updated = update_transaction(parsed_id, transaction, db_path)
     if not updated:
-        return (f"Transaction #{parsed_id} was not found.", _command_center(db_path), *_refresh_core_views(db_path))
-    return (f"Updated transaction #{parsed_id}: {_transaction_summary(transaction)}.", _command_center(db_path), *_refresh_core_views(db_path))
+        return (f"Transaction #{parsed_id} was not found.", _command_center(db_path), *_refresh_core_views(db_path, language=language), "")
+    
+    status = f"Updated transaction #{parsed_id}: {_transaction_summary(transaction)}."
+    tts_msg = t("transaction_updated_tts", language)
+    return (status, _command_center(db_path), *_refresh_core_views(db_path, language=language), tts_msg)
 
 
 def _delete_transaction_and_refresh(
     transaction_id: float | int | None,
     db_path: str | Path | None,
-) -> tuple[str, str, str, str, str, str, str, pd.DataFrame, pd.DataFrame, pd.DataFrame, str, pd.DataFrame, pd.DataFrame, pd.io.formats.style.Styler]:
+    language: str = "English",
+) -> tuple[str, str, str, str, str, str, str, pd.DataFrame, pd.DataFrame, pd.DataFrame, str, pd.DataFrame, pd.DataFrame, pd.io.formats.style.Styler, str]:
     """Delete a transaction and refresh all dependent views."""
     parsed_id = _coerce_transaction_id(transaction_id)
     if parsed_id is None:
-        return ("Enter a transaction id before deleting.", _command_center(db_path), *_refresh_core_views(db_path))
+        return ("Enter a transaction id before deleting.", _command_center(db_path), *_refresh_core_views(db_path, language=language), "")
 
     deleted = delete_transaction(parsed_id, db_path)
     if not deleted:
-        return (f"Transaction #{parsed_id} was not found.", _command_center(db_path), *_refresh_core_views(db_path))
-    return (f"Deleted transaction #{parsed_id} and refreshed balances.", _command_center(db_path), *_refresh_core_views(db_path))
+        return (f"Transaction #{parsed_id} was not found.", _command_center(db_path), *_refresh_core_views(db_path, language=language), "")
+    
+    status = f"Deleted transaction #{parsed_id} and refreshed balances."
+    tts_msg = t("transaction_deleted_tts", language)
+    return (status, _command_center(db_path), *_refresh_core_views(db_path, language=language), tts_msg)
 
 
 def _export_ledger_csv(db_path: str | Path | None) -> tuple[str, str]:
@@ -1757,22 +2063,25 @@ def _export_ledger_csv(db_path: str | Path | None) -> tuple[str, str]:
 
 def _seed_demo_transactions_and_refresh(
     db_path: str | Path | None,
-) -> tuple[str, str, str, str, str, str, str, pd.DataFrame, pd.DataFrame, pd.DataFrame, str, pd.DataFrame, pd.DataFrame, pd.io.formats.style.Styler]:
+    language: str = "English",
+) -> tuple[str, str, str, str, str, str, str, pd.DataFrame, pd.DataFrame, pd.DataFrame, str, pd.DataFrame, pd.DataFrame, pd.io.formats.style.Styler, str]:
     """Seed realistic demo transactions and refresh all dependent views."""
     saved_ids = [add_transaction(local_parse_transaction(note), db_path) for note in DEMO_NOTES]
     return (
         f"Seeded {len(saved_ids)} demo transactions. Last transaction id: #{saved_ids[-1]}.",
         _command_center(db_path),
-        *_refresh_core_views(db_path),
+        *_refresh_core_views(db_path, language=language),
+        "",
     )
 
 
 def _refresh_core_views(
     db_path: str | Path | None,
+    language: str = "English",
 ) -> tuple[str, str, str, str, str, pd.DataFrame, pd.DataFrame, pd.DataFrame, str, pd.DataFrame, pd.DataFrame, pd.io.formats.style.Styler]:
     """Return dashboard, ledger, customer, and inventory refresh values."""
     return (
-        *_get_dashboard_data(db_path),
+        *_get_dashboard_data(db_path, language=language),
         get_transactions(db_path),
         get_customer_balances(db_path),
         _get_inventory_display(db_path),
@@ -1900,6 +2209,7 @@ def _field_test_summary(settings: dict[str, str]) -> str:
 
 def _get_dashboard_data(
     db_path: str | Path | None,
+    language: str = "English",
 ) -> tuple[str, str, str, str, str, pd.DataFrame, pd.DataFrame, pd.DataFrame, str, str]:
     """Return business insight values for the Dashboard section."""
     settings = get_business_settings(db_path)
@@ -1927,12 +2237,12 @@ def _get_dashboard_data(
         timeline,
         top_items,
         low_stock,
-        _insight_coach(db_path),
+        _insight_coach(db_path, language=language),
         seller_day,
     )
 
 
-def _insight_coach(db_path: str | Path | None) -> str:
+def _insight_coach(db_path: str | Path | None, language: str = "English") -> str:
     """Return practical next-step coaching from today's ledger state."""
     settings = get_business_settings(db_path)
     currency = settings["currency_symbol"]
@@ -1946,30 +2256,54 @@ def _insight_coach(db_path: str | Path | None) -> str:
     low_stock = low_stock_items(db_path, threshold=threshold)
     customer_balances = get_customer_balances(db_path)
 
+    # 1. Deterministic Rule-Based Insights (Basic translations for demo)
     insights: list[tuple[str, str, str]] = []
     if ledger.empty:
         insights.append(("Start", "Record first transaction", "Use voice or text to add a sale, expense, credit, payment, or stock purchase."))
-    if sales == 0:
-        insights.append(("Sales", "No sales yet today", "Try “Sold 12 mangoes, 20 each” or seed demo data to inspect the full workflow."))
+    if sales == 0 and not ledger.empty:
+        insights.append(("Sales", "No sales yet today", "Focus on recording your first sale to track today's profit."))
     if expenses > sales and expenses > 0:
-        insights.append(("Profit", "Expenses are above sales", f"Profit is {_format_money(profit, currency)} today. Review costs before daily closeout."))
+        insights.append(("Profit", "Expenses are above sales", f"Profit is {currency}{profit} today. Review costs before daily closeout."))
     if credit > 0 and not customer_balances.empty:
         balances = customer_balances.copy()
         balances["outstanding_balance"] = pd.to_numeric(balances["outstanding_balance"], errors="coerce").fillna(0)
         balances = balances.sort_values("outstanding_balance", ascending=False)
         customer = str(balances.iloc[0]["customer"])
         balance = float(balances.iloc[0]["outstanding_balance"])
-        insights.append(("Credit", f"Follow up with {customer}", f"{customer} has {_format_money(balance, currency)} outstanding. Use Customer Follow-up to generate a message."))
+        insights.append(("Credit", f"Follow up with {customer}", f"{customer} has {currency}{balance} outstanding. Use Customer Follow-up to generate a message."))
     if not low_stock.empty:
         item = str(low_stock.iloc[0]["item"])
         stock = float(low_stock.iloc[0]["current_stock"])
-        insights.append(("Stock", f"Restock {item}", f"Current stock is {_format_quantity(stock)}, below the threshold of {_format_quantity(threshold)}."))
+        insights.append(("Stock", f"Restock {item}", f"Current stock is {stock}, below the threshold of {threshold}."))
     if not top_items.empty:
         item = str(top_items.iloc[0]["item"])
         quantity = top_items.iloc[0]["quantity_sold"]
-        insights.append(("Demand", f"Top product: {item}", f"{_format_quantity(quantity)} sold today. Keep this item visible and stocked."))
-    if ledger.shape[0] > 0 and not any(label == "Closeout" for label, _, _ in insights):
-        insights.append(("Closeout", "Exports are ready", "Run Daily Closeout to prepare PDF, CSV, and WhatsApp summary for today."))
+        insights.append(("Demand", f"Top product: {item}", f"{quantity} sold today. Keep this item visible and stocked."))
+
+    # 2. LLM-Generated Strategic Insights
+    llm_insights_html = ""
+    if not ledger.empty:
+        summary = get_business_summary(db_path)
+        # We can ask the LLM to provide advice in the target language!
+        prompt_language = language if language != "Hindi" else "Hindi (using Devanagari script)"
+        llm_advice = generate_business_insights(f"{summary}\n\nPlease provide the advice in {prompt_language}.")
+        
+        # Format markdown-style bullet points into HTML
+        advice_items = [line.strip("- ").strip() for line in llm_advice.split("\n") if line.strip().startswith("-") or line.strip()[:1].isdigit()]
+        if not advice_items:
+             advice_items = [line.strip() for line in llm_advice.split(". ") if len(line) > 10][:3]
+        
+        advice_rows = "".join(f"<li>{escape(item)}</li>" for item in advice_items)
+        ai_coach_label = "AI Business Coach" if language == "English" else f"AI Business Coach ({language})"
+        if language == "Spanish": ai_coach_label = "Entrenador de Negocios IA"
+        if language == "Hindi": ai_coach_label = "AI बिजनेस कोच"
+        
+        llm_insights_html = f"""
+        <div class="vl-llm-insights">
+          <h3>{ai_coach_label}</h3>
+          <ul>{advice_rows}</ul>
+        </div>
+        """
 
     rows = "".join(
         f"""
@@ -1979,13 +2313,14 @@ def _insight_coach(db_path: str | Path | None) -> str:
           <p>{escape(body)}</p>
         </li>
         """
-        for label, title, body in insights[:5]
+        for label, title, body in insights[:4]
     )
     return f"""
     <section class="vl-insight-coach">
-      <h2>Insight Coach</h2>
-      <p>Practical next steps based on today's sales, credit, and stock.</p>
+      <h2>{t("insight_coach_title", language)}</h2>
+      <p>{t("insight_coach_subtitle", language)}</p>
       <ol>{rows}</ol>
+      {llm_insights_html}
     </section>
     """
 
@@ -2497,15 +2832,24 @@ def _get_system_check(db_path: str | Path | None) -> tuple[pd.DataFrame, str]:
 
 
 def _metric_card(label: str, value: str, note: str, profit: float | None = None) -> str:
-    """Render a dashboard metric card."""
+    """Render a dashboard metric card with icons."""
     tone = ""
+    icon = "📊"
+    if "Sales" in label: icon = "💰"
+    if "Expenses" in label: icon = "💸"
+    if "Profit" in label: icon = "📈" if (profit or 0) >= 0 else "📉"
+    if "Credit" in label: icon = "🤝"
+    
     if profit is not None:
         tone = " vl-profit-positive" if profit >= 0 else " vl-profit-negative"
     return f"""
     <div class="vl-metric-card{tone}">
-      <div class="vl-metric-label">{label}</div>
-      <div class="vl-metric-value">{value}</div>
-      <div class="vl-metric-note">{note}</div>
+      <div class="vl-metric-icon">{icon}</div>
+      <div class="vl-metric-content">
+        <div class="vl-metric-label">{label}</div>
+        <div class="vl-metric-value">{value}</div>
+        <div class="vl-metric-note">{note}</div>
+      </div>
     </div>
     """
 
@@ -2709,15 +3053,56 @@ def _is_duplicate_transaction(transaction: Transaction, db_path: str | Path | No
     return not comparable.empty
 
 
+import qrcode
+from io import BytesIO
+import base64
+from PIL import Image
+
+def _generate_qr_code(data: str) -> str:
+    """Generate a base64 encoded QR code image."""
+    qr = qrcode.QRCode(version=1, box_size=10, border=5)
+    qr.add_data(data)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
+    buffered = BytesIO()
+    img.save(buffered, format="PNG")
+    img_str = base64.b64encode(buffered.getvalue()).decode()
+    return f"data:image/png;base64,{img_str}"
+
+def _payment_qr_panel(transaction: Transaction, settings: dict[str, str]) -> str:
+    """Return a QR code panel for payments if applicable."""
+    if transaction.transaction_type != "sale" or transaction.payment_status == "paid":
+        return ""
+    
+    # Mocking a UPI/Payment URI for the demo
+    # In a real app, this would use settings['payment_id']
+    business = settings.get("business_name", "VoiceLedger Seller")
+    amount = transaction.amount or 0
+    payment_uri = f"upi://pay?pa=seller@bank&pn={business}&am={amount}&cu=INR"
+    qr_base64 = _generate_qr_code(payment_uri)
+    
+    return f"""
+    <div class="vl-qr-panel">
+      <h3>{t("qr_payment_title", settings.get("language", "English"))}</h3>
+      <p>{t("qr_payment_subtitle", settings.get("language", "English"))}</p>
+      <img src="{qr_base64}" alt="Payment QR Code" style="width: 200px; height: 200px; margin: 10px auto; display: block;" />
+      <p style="text-align: center; font-weight: bold;">Amount: {settings.get("currency_symbol", "₹")}{amount}</p>
+    </div>
+    """
+
 def _receipt_card(transaction: Transaction, transaction_id: int, db_path: str | Path | None) -> str:
     """Render a post-save receipt card."""
     summary = _transaction_summary(transaction)
     side_effect = _side_effect_summary(transaction, db_path)
+    settings = get_business_settings(db_path)
+    qr_panel = _payment_qr_panel(transaction, settings)
+    
     return f"""
     <section class="vl-receipt-card">
       <h2>Saved just now</h2>
       <p>Transaction #{transaction_id}: {escape(summary)}.</p>
       <p>{escape(side_effect)}</p>
+      {qr_panel}
     </section>
     """
 
