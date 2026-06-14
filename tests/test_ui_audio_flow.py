@@ -6,6 +6,15 @@ from backend.modal_api import ParseResult, TranscriptionResult
 from voiceledger.ui import gradio_app
 
 
+def test_create_app_builds_blocks(tmp_path) -> None:
+    app = gradio_app.create_app(tmp_path / "voiceledger.sqlite3")
+
+    try:
+        assert app is not None
+    finally:
+        app.close()
+
+
 def test_transcribe_and_parse_audio_handles_transcription_error(monkeypatch) -> None:
     def fail_transcription(_: object) -> str:
         raise RuntimeError("test failure")

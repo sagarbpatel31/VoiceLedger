@@ -208,42 +208,6 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
                 gr.update(value=t("quick_expense", lang)),
             )
 
-        lang_dropdown.change(
-            fn=_change_language,
-            inputs=lang_dropdown,
-            outputs=[
-                ui_language,
-                hero_output,
-                nav_record_button,
-                nav_dashboard_button,
-                nav_health_button,
-                nav_story_button,
-                nav_field_test_button,
-                nav_bulk_button,
-                nav_credit_button,
-                nav_inventory_button,
-                nav_reports_button,
-                nav_ledger_button,
-                record_info_panel,
-                judge_panel_output,
-                today_work_output,
-                examples_panel_output,
-                onboarding_panel_output,
-                note_input,
-                audio_input,
-                parse_button,
-                transcribe_button,
-                save_button,
-                image_input,
-                scan_button,
-                nav_sections_label,
-                quick_mango,
-                quick_onion,
-                quick_milk,
-                quick_expense,
-            ]
-        )
-
         with gr.Column(visible=True, elem_classes="vl-page-section") as record_page:
                 gr.HTML('<div id="vl-page-record" class="vl-page-anchor"></div>')
                 record_info_panel = gr.HTML(
@@ -1396,6 +1360,41 @@ def create_app(db_path: str | Path | None = None) -> gr.Blocks:
             fn=lambda: _generate_daily_summary_report(db_path),
             inputs=None,
             outputs=[report_file_output, report_status_output],
+        )
+        lang_dropdown.change(
+            fn=_change_language,
+            inputs=lang_dropdown,
+            outputs=[
+                ui_language,
+                hero_output,
+                nav_record_button,
+                nav_dashboard_button,
+                nav_health_button,
+                nav_story_button,
+                nav_field_test_button,
+                nav_bulk_button,
+                nav_credit_button,
+                nav_inventory_button,
+                nav_reports_button,
+                nav_ledger_button,
+                record_info_panel,
+                judge_panel_output,
+                today_work_output,
+                examples_panel_output,
+                onboarding_panel_output,
+                note_input,
+                audio_input,
+                parse_button,
+                transcribe_button,
+                save_button,
+                image_input,
+                scan_button,
+                nav_sections_label,
+                quick_mango,
+                quick_onion,
+                quick_milk,
+                quick_expense,
+            ],
         )
 
     return demo
